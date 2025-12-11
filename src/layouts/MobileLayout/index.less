@@ -1,0 +1,53 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+// 隐藏移动端页面的所有 header 相关元素
+:global {
+  // 隐藏 NavBar 组件
+  .adm-nav-bar {
+    display: none !important;
+  }
+  
+  // 隐藏 NavBar 的容器
+  .adm-nav-bar-container {
+    display: none !important;
+  }
+  
+  // 隐藏 NavBar 的头部区域
+  .adm-nav-bar-header {
+    display: none !important;
+  }
+  
+  // 隐藏任何可能的 header 元素
+  header {
+    display: none !important;
+  }
+  
+  // 隐藏包含 NavBar 的父容器
+  .adm-page-header {
+    display: none !important;
+  }
+  
+  // 覆盖 Ant Design Pro 的全局布局样式，减少移动端留白
+  .ant-pro-layout .ant-pro-layout-content {
+    padding-block: 8px !important;
+    padding-inline: 8px !important;
+  }
+  
+  // 在小屏幕上进一步减少留白
+  @media (max-width: 375px) {
+    .ant-pro-layout .ant-pro-layout-content {
+      padding-block: 4px !important;
+      padding-inline: 4px !important;
+    }
+  }
+} 

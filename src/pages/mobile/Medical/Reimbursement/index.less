@@ -1,0 +1,590 @@
+.container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.content {
+  padding: 8px;
+  padding-bottom: 80px;
+}
+
+// 步骤指示器样式
+.stepperContainer {
+  background: white;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background-color: #e8e8e8;
+    z-index: 1;
+  }
+  
+  &.active:not(:last-child)::after {
+    background-color: #1677ff;
+  }
+}
+
+.stepNumber {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e8e8e8;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 2;
+  
+  .step.active & {
+    background-color: #1677ff;
+    color: white;
+  }
+}
+
+.stepTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  margin-bottom: 4px;
+  
+  .step.active & {
+    color: #1677ff;
+  }
+}
+
+.stepDescription {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  line-height: 1.4;
+}
+
+// 上传卡片样式
+.uploadCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.uploadArea {
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.uploadButtons {
+  margin-bottom: 24px;
+  
+  .adm-button {
+    margin-bottom: 16px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.uploadTips {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  
+  p {
+    margin: 4px 0;
+  }
+}
+
+// 图片卡片样式
+.imageCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.imagePreview {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.imageActions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+// 加载卡片样式
+.loadingCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loadingContent {
+  padding: 32px 16px;
+  text-align: center;
+  
+  p {
+    margin: 8px 0;
+    color: #666;
+  }
+}
+
+// 结果卡片样式
+.resultCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.resultHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.resultList {
+  margin-bottom: 20px;
+  
+  .adm-list-item {
+    padding: 12px 0;
+    
+    .adm-list-item-content-main {
+      font-size: 14px;
+      color: #333;
+    }
+    
+    .adm-list-item-content-extra {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+  }
+}
+
+.resultActions {
+  margin-bottom: 20px;
+}
+
+.resultDetails {
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.6;
+  
+  p {
+    margin: 4px 0;
+  }
+}
+
+// 确认卡片样式
+.confirmCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.confirmHeader {
+  text-align: center;
+  margin-bottom: 24px;
+  
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+  }
+}
+
+.confirmList {
+  margin-bottom: 24px;
+  
+  .adm-list-item {
+    padding: 12px 0;
+    
+    .adm-list-item-content-main {
+      font-size: 14px;
+      color: #333;
+    }
+    
+    .adm-list-item-content-extra {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+  }
+}
+
+.confirmActions {
+  margin-bottom: 16px;
+}
+
+// 表单卡片样式
+.formCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.formHeader {
+  text-align: center;
+  margin-bottom: 24px;
+  
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+  }
+}
+
+.reimbursementForm {
+  .adm-form-item {
+    margin-bottom: 20px;
+    
+    .adm-form-item-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .adm-form-item-child {
+      .adm-input,
+      .adm-selector,
+      .adm-text-area {
+        border-radius: 8px;
+        border: 1px solid #d9d9d9;
+        
+        &:focus {
+          border-color: #1677ff;
+          box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.2);
+        }
+      }
+    }
+  }
+}
+
+// 成功卡片样式
+.successCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.successContent {
+  text-align: center;
+  padding: 32px 16px;
+  
+  h3 {
+    margin: 16px 0 12px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  p {
+    margin: 8px 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+.successActions {
+  margin-bottom: 16px;
+}
+
+// 错误卡片样式
+.errorCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.errorActions {
+  margin-top: 20px;
+}
+
+// 响应式设计
+@media (max-width: 375px) {
+  .content {
+    padding: 6px;
+  }
+  
+  .stepperContainer {
+    padding: 12px;
+  }
+  
+  .stepNumber {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .stepTitle {
+    font-size: 13px;
+  }
+  
+  .stepDescription {
+    font-size: 11px;
+  }
+} 
+
+// 新增样式：识别记录列表
+.recordsCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recordsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.recordsList {
+  :global(.adm-list-item) {
+    padding: 12px 16px;
+  }
+}
+
+.recordInfo {
+  flex: 1;
+  margin-left: 12px;
+}
+
+.recordTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.recordTime {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.recordConfidence {
+  font-size: 12px;
+  color: #666;
+}
+
+// 识别结果卡片
+.recognitionCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recognitionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.imagePreview {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.imageInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.recognitionList {
+  :global(.adm-list-item) {
+    padding: 12px 16px;
+  }
+}
+
+.valueText {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  word-break: break-all;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+// 已确认信息卡片
+.confirmedCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.confirmedHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.confirmedList {
+  :global(.adm-list-item) {
+    padding: 12px 16px;
+  }
+}
+
+.confirmedInfo {
+  flex: 1;
+  margin-left: 12px;
+}
+
+.confirmedLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.confirmedStatus {
+  display: flex;
+  align-items: center;
+}
+
+.confirmedTime {
+  font-size: 12px;
+  color: #999;
+}
+
+// 已确认信息预览卡片
+.confirmedPreviewCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.1);
+}
+
+.confirmedPreviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #b7eb8f;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #52c41a;
+  }
+}
+
+.confirmedPreviewList {
+  :global(.adm-list-item) {
+    padding: 12px 16px;
+  }
+  
+  .valueText {
+    font-weight: 500;
+    color: #52c41a;
+  }
+}
+
+// 底部按钮区域
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
+  z-index: 100;
+}
+
+// 空状态卡片
+.emptyCard {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 40px 16px;
+  text-align: center;
+} 

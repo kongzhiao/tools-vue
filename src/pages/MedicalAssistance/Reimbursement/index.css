@@ -1,0 +1,22 @@
+/* 搜索表单样式 */
+.search-form .ant-form-item {
+  margin-bottom: 16px;
+  margin-right: 16px;
+}
+
+/* 确保换行后的表单项有足够的间距 */
+.search-form .ant-form-item:last-child {
+  margin-right: 0;
+}
+
+/* 搜索表单容器样式 */
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* 按钮组样式 */
+.search-form .ant-form-item:last-child .ant-space {
+  margin-top: 4px;
+}
