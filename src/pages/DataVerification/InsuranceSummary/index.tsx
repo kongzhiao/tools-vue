@@ -133,7 +133,7 @@ const InsuranceSummaryPage: React.FC = () => {
     // 合并镇街列
     merges.push({
       s: { r: 0, c: 0 },
-      e: { r: 3, c: 0 }
+      e: { r: 2, c: 0 }
     });
     
     // 使用categories_levels_mapping来生成列，确保显示所有配置的类别-档次组合
@@ -178,8 +178,8 @@ const InsuranceSummaryPage: React.FC = () => {
       }
     });
     
-    // 添加合计列
-    firstRowHeaders.push('合计');
+    // 添加总计列
+    firstRowHeaders.push('总计');
     firstRowHeaders.push(''); // 第一行需要两个单元格，第二个为空
     secondRowHeaders.push('');
     secondRowHeaders.push(''); // 第二行需要两个空字符串
@@ -226,9 +226,8 @@ const InsuranceSummaryPage: React.FC = () => {
           });
         });
         
-        // 添加合计数据
+        // 添加总计数据
         rowData.push(item.total_count.toString(), item.total_amount.toString());
-        
         return rowData;
       });
       
@@ -293,8 +292,9 @@ const InsuranceSummaryPage: React.FC = () => {
         title: '镇街',
         dataIndex: 'street_town',
         key: 'street_town',
-        width: 120,
+        width: 150,
         fixed: 'left',
+        align: 'center',
       },
     ];
 
@@ -386,21 +386,28 @@ const InsuranceSummaryPage: React.FC = () => {
           <Col span={18}>
             {statistics && (
               <Row gutter={16}>
-                <Col span={8}>
+                <Col span={6}>
+                  <Statistic
+                    title="总记录数"
+                    value={statistics.total}
+                    valueStyle={{ color: '#000' }}
+                  />
+                </Col>
+                <Col span={6}>
                   <Statistic
                     title="正确数据"
                     value={statistics.matched_count}
                     valueStyle={{ color: '#52c41a' }}
                   />
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                   <Statistic
                     title="待匹配数量"
                     value={statistics.unmatched_data_count}
-                    valueStyle={{ color: '#faad14' }}
+                    valueStyle={{ color: '#1677ff' }}
                   />
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                   <Statistic
                     title="疑点数据"
                     value={statistics.unmatched_count}
@@ -454,10 +461,10 @@ const InsuranceSummaryPage: React.FC = () => {
                
                // 添加镇街列
                summaryCells.push(
-                 <Table.Summary.Cell key="total" index={0}>总计</Table.Summary.Cell>
+                 <Table.Summary.Cell key="total" index={0}>合计</Table.Summary.Cell>
                );
                
-               // 使用categories_levels_mapping来生成汇总行，确保与列结构一致
+              //  使用categories_levels_mapping来生成汇总行，确保与列结构一致
                categoriesLevelsMapping.forEach(categoryMapping => {
                  const { category, levels: categoryLevels } = categoryMapping;
                  
@@ -513,7 +520,7 @@ const InsuranceSummaryPage: React.FC = () => {
           <Text type="secondary">
             <strong>说明：</strong>
             <br />
-            • 本表按镇街和代缴类别统计{currentYear}年度参保人数和金额
+            • 本表按镇街和代缴类别统计{currentYear}年度（已匹配正确的数据）参保人数和金额
             <br />
             • 数据来源于参保数据管理系统
             <br />

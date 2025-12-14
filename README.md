@@ -10,7 +10,7 @@
 
   ### 2. 环境配置支持
 
-  - ✅ 开发环境 (development): `http://localhost:9510`
+  - ✅ 开发环境 (development): `http://localhost:9501`
   - ✅ 测试环境 (test): `http://test-api.example.com`
   - ✅ 生产环境 (production): `https://api.example.com`
 

@@ -910,27 +910,37 @@ const InsuranceDataPage: React.FC = () => {
             <Statistic
               title="总记录数"
               value={statistics.total}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: '#000' }}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card>
             <Statistic
               title="正确数据"
               value={statistics.matched_count}
               valueStyle={{ color: '#52c41a' }}
-              suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
+              // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title="待匹配数量"
+              value={statistics.unmatched_data_count}
+              valueStyle={{ color: '#1677ff' }}
+              // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
+            />
+          </Card>
+        </Col>
+        <Col span={4}>
           <Card>
             <Statistic
               title="疑点数据"
               value={statistics.unmatched_count}
-              valueStyle={{ color: '#52c41a' }}
-              suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
+              valueStyle={{ color: '#ff4d4f' }}
+              // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
             />
           </Card>
         </Col>

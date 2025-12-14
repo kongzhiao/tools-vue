@@ -7,7 +7,7 @@ const testConfig = {
     ? 'http://47.108.30.164:9510' 
     : process.env.NODE_ENV === 'production'
     ? 'https://api.example.com'
-    : 'http://localhost:9510',
+    : 'http://localhost:9501',
 };
 
 console.log('Test Config:', testConfig);

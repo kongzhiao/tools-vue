@@ -49,7 +49,7 @@ export function getConfig(): AppConfig {
       ? 'http://47.109.34.185:9510' 
       : effectiveEnv === 'production'
       ? 'https://cqjj.24do.com/api'
-      : 'http://127.0.0.1:9510',
+      : 'http://127.0.0.1:9501',
     apiTimeout: effectiveEnv === 'test' ? 60000 : effectiveEnv === 'production' ? 60000 : 60000, // 统一设置为60秒，匹配后端OCR服务超时
     enableMock: effectiveEnv === 'test' ? false : effectiveEnv === 'production' ? false : true,
     nodeEnv: effectiveEnv,

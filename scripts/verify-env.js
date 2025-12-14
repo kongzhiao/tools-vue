@@ -48,7 +48,7 @@ function verifyEnvironmentConfig() {
     ? 'http://47.109.34.185:9510' 
     : nodeEnv === 'production'
     ? 'https://api.example.com'
-    : 'http://localhost:9510';
+    : 'http://localhost:9501';
     
   if (configApi !== expectedApi) {
     console.error(`❌ API地址不匹配: 期望=${expectedApi}, 实际=${configApi}`);
@@ -71,8 +71,8 @@ function verifyEnvironmentConfig() {
       
       // 检查代理配置是否与环境匹配
       if (nodeEnv === 'development') {
-        // 开发环境应该使用 localhost:9510
-        if (umircContent.includes('localhost:9510')) {
+        // 开发环境应该使用 localhost:9501
+        if (umircContent.includes('localhost:9501')) {
           console.log(`✅ UmiJS开发环境代理配置正确`);
         } else {
           console.warn(`⚠️  UmiJS开发环境代理配置可能不正确`);

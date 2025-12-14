@@ -217,21 +217,28 @@ const TaxSummaryPage: React.FC = () => {
           <Col span={18}>
             {statistics && (
               <Row gutter={16}>
-                <Col span={8}>
+                <Col span={6}>
+                  <Statistic
+                    title="总记录数"
+                    value={statistics.total}
+                    valueStyle={{ color: '#000' }}
+                  />
+                </Col>
+                <Col span={6}>
                   <Statistic
                     title="正确数据"
                     value={statistics.matched_count}
                     valueStyle={{ color: '#52c41a' }}
                   />
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                   <Statistic
                     title="待匹配数量"
                     value={statistics.unmatched_data_count}
-                    valueStyle={{ color: '#faad14' }}
+                    valueStyle={{ color: '#1677ff' }}
                   />
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                   <Statistic
                     title="疑点数据"
                     value={statistics.unmatched_count}
@@ -300,7 +307,7 @@ const TaxSummaryPage: React.FC = () => {
           <Text type="secondary">
             <strong>说明：</strong>
             <br />
-            • 本表统计了{currentYear}年度各代缴类别的人数和代缴金额
+            • 本表统计了{currentYear}年度（已匹配正确的数据）各代缴类别的人数和代缴金额
             <br />
             • 数据来源于参保数据管理系统
             <br />

@@ -312,6 +312,12 @@ const generateExcelHeaders = (columnsConfig: any[]) => {
   const merges: any[] = []; // 合并单元格配置
   
   let colIndex = 0;
+
+  // 合并月份列
+  merges.push({
+    s: { r: 0, c: 0 },
+    e: { r: 2, c: 0 }
+  });
   
   columnsConfig.forEach((column) => {
     if (column.children) {
@@ -455,33 +461,33 @@ const PersonTimeStatisticsModal: React.FC<PersonTimeStatisticsModalProps> = ({
         return [
           projectStats.project_code, // 月份
           // 区内明细
-          (projectStats.import_types['区内明细']?.outpatient_count || 0) + (projectStats.import_types['区内明细']?.inpatient_count || 0), // 合计_人次
-          projectStats.import_types['区内明细']?.total_amount || 0, // 合计_金额
           projectStats.import_types['区内明细']?.outpatient_count || 0, // 门诊_人次
           projectStats.import_types['区内明细']?.outpatient_amount || 0, // 门诊_金额
           projectStats.import_types['区内明细']?.inpatient_count || 0, // 住院_人次
           projectStats.import_types['区内明细']?.inpatient_amount || 0, // 住院_金额
+          (projectStats.import_types['区内明细']?.outpatient_count || 0) + (projectStats.import_types['区内明细']?.inpatient_count || 0), // 合计_人次
+          projectStats.import_types['区内明细']?.total_amount || 0, // 合计_金额
         // 跨区明细
-          (projectStats.import_types['跨区明细']?.outpatient_count || 0) + (projectStats.import_types['跨区明细']?.inpatient_count || 0), // 合计_人次
-          projectStats.import_types['跨区明细']?.total_amount || 0, // 合计_金额
-          projectStats.import_types['跨区明细']?.outpatient_count || 0, // 门诊_人次
-          projectStats.import_types['跨区明细']?.outpatient_amount || 0, // 门诊_金额
-          projectStats.import_types['跨区明细']?.inpatient_count || 0, // 住院_人次
-          projectStats.import_types['跨区明细']?.inpatient_amount || 0, // 住院_金额
+        projectStats.import_types['跨区明细']?.outpatient_count || 0, // 门诊_人次
+        projectStats.import_types['跨区明细']?.outpatient_amount || 0, // 门诊_金额
+        projectStats.import_types['跨区明细']?.inpatient_count || 0, // 住院_人次
+        projectStats.import_types['跨区明细']?.inpatient_amount || 0, // 住院_金额
+        (projectStats.import_types['跨区明细']?.outpatient_count || 0) + (projectStats.import_types['跨区明细']?.inpatient_count || 0), // 合计_人次
+        projectStats.import_types['跨区明细']?.total_amount || 0, // 合计_金额
         // 手工明细
-          (projectStats.import_types['手工明细']?.outpatient_count || 0) + (projectStats.import_types['手工明细']?.inpatient_count || 0), // 合计_人次
-          projectStats.import_types['手工明细']?.total_amount || 0, // 合计_金额
-          projectStats.import_types['手工明细']?.outpatient_count || 0, // 门诊_人次
-          projectStats.import_types['手工明细']?.outpatient_amount || 0, // 门诊_金额
-          projectStats.import_types['手工明细']?.inpatient_count || 0, // 住院_人次
-          projectStats.import_types['手工明细']?.inpatient_amount || 0, // 住院_金额
+        projectStats.import_types['手工明细']?.outpatient_count || 0, // 门诊_人次
+        projectStats.import_types['手工明细']?.outpatient_amount || 0, // 门诊_金额
+        projectStats.import_types['手工明细']?.inpatient_count || 0, // 住院_人次
+        projectStats.import_types['手工明细']?.inpatient_amount || 0, // 住院_金额
+        (projectStats.import_types['手工明细']?.outpatient_count || 0) + (projectStats.import_types['手工明细']?.inpatient_count || 0), // 合计_人次
+        projectStats.import_types['手工明细']?.total_amount || 0, // 合计_金额
           // 汇总
-          projectStats.summary.total_outpatient_count + projectStats.summary.total_inpatient_count, // 共计_人次
-          projectStats.summary.total_outpatient_amount + projectStats.summary.total_inpatient_amount, // 共计_金额
           projectStats.summary.total_outpatient_count, // 门诊_人次
           projectStats.summary.total_outpatient_amount, // 门诊_金额
           projectStats.summary.total_inpatient_count, // 住院_人次
           projectStats.summary.total_inpatient_amount, // 住院_金额
+          projectStats.summary.total_outpatient_count + projectStats.summary.total_inpatient_count, // 共计_人次
+          projectStats.summary.total_outpatient_amount + projectStats.summary.total_inpatient_amount, // 共计_金额
         ];
       });
 

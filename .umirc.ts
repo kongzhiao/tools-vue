@@ -20,7 +20,7 @@ export default defineConfig({
         ? 'http://47.109.34.185:9510' 
         : process.env.NODE_ENV === 'production'
         ? 'https://api.example.com'
-        : 'http://localhost:9510',
+        : 'http://localhost:9501',
       changeOrigin: true,
       secure: false,
     },
