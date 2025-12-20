@@ -115,7 +115,7 @@ const Role: React.FC = () => {
       if (response.code === 0) {
         const rolePermissionsTree = response.data;
         console.log('角色权限树形数据:', rolePermissionsTree); // 调试信息
-        
+
         // 从树形结构中提取已分配的权限ID
         const extractPermissionIds = (permissions: any[]): number[] => {
           const ids: number[] = [];
@@ -129,7 +129,7 @@ const Role: React.FC = () => {
           });
           return ids;
         };
-        
+
         const permissionIds = extractPermissionIds(rolePermissionsTree);
         console.log('权限ID数组:', permissionIds); // 调试信息
         setCheckedKeys(permissionIds);
@@ -144,9 +144,9 @@ const Role: React.FC = () => {
 
   const handleAssignPermissions = async (values: any) => {
     if (!selectedRole) return;
-    
+
     console.log('提交的权限数据:', values); // 调试信息
-    
+
     try {
       await request(`/api/roles/${selectedRole.id}/permissions`, {
         method: 'POST',
@@ -155,10 +155,10 @@ const Role: React.FC = () => {
       message.success('权限分配成功');
       setPermissionModalVisible(false);
       permissionForm.resetFields();
-      
+
       // 强制刷新角色列表数据
       await fetchRoles();
-      
+
       // 更新选中的角色数据 - 使用权限分配API获取最新数据
       if (selectedRole) {
         const response = await request(`/api/roles/${selectedRole.id}/permissions`, {
@@ -178,9 +178,9 @@ const Role: React.FC = () => {
             });
             return ids;
           };
-          
+
           const permissionIds = extractPermissionIds(response.data);
-          
+
           // 构建权限显示数据
           const buildDisplayPermissions = (permissions: any[]): any[] => {
             const displayPermissions: any[] = [];
@@ -198,13 +198,13 @@ const Role: React.FC = () => {
             });
             return displayPermissions;
           };
-          
+
           const displayPermissions = buildDisplayPermissions(response.data);
-          
+
           // 更新角色列表中的对应角色
-          setRoles(prevRoles => 
-            prevRoles.map(role => 
-              role.id === selectedRole.id 
+          setRoles(prevRoles =>
+            prevRoles.map(role =>
+              role.id === selectedRole.id
                 ? { ...role, permissions: displayPermissions }
                 : role
             )
@@ -290,7 +290,7 @@ const Role: React.FC = () => {
         if (!permissions || permissions.length === 0) {
           return <span style={{ color: '#999' }}>无权限</span>;
         }
-        
+
         // 如果权限数据有children字段，使用树形显示
         if (permissions.some(p => p.children)) {
           return (
@@ -304,7 +304,7 @@ const Role: React.FC = () => {
             </div>
           );
         }
-        
+
         // 否则使用标签显示
         return (
           <div style={{ maxHeight: '200px', overflow: 'auto' }}>

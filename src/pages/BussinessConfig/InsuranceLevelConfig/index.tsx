@@ -429,7 +429,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
       title: '资助代缴金额（元）',
       dataIndex: 'subsidy_amount',
       key: 'subsidy_amount',
-      width: 150,
+      width: 175,
       render: (amount: any) => {
         const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
         return `¥${numAmount.toFixed(2)}`;
@@ -439,7 +439,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
       title: '个人实缴金额（元）',
       dataIndex: 'personal_amount',
       key: 'personal_amount',
-      width: 150,
+      width: 175,
       render: (amount: any) => {
         const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
         return `¥${numAmount.toFixed(2)}`;

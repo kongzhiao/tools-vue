@@ -16,11 +16,11 @@ export default defineConfig({
   // 添加代理配置
   proxy: {
     '/api': {
-      target: process.env.NODE_ENV === 'test' 
-        ? 'http://47.109.34.185:9510' 
+      target: process.env.NODE_ENV === 'test'
+        ? 'http://47.109.34.185:9510'
         : process.env.NODE_ENV === 'production'
-        ? 'https://api.example.com'
-        : 'http://localhost:9501',
+          ? 'https://api.example.com'
+          : 'http://localhost:9501',
       changeOrigin: true,
       secure: false,
     },
@@ -31,7 +31,7 @@ export default defineConfig({
     // 移除API_BASE_URL的define配置，避免与我们的配置系统冲突
   },
   layout: {
-    title: '共享救助信息服务平台',
+    title: '共享救助信息服务平台2',
   },
   // 简化配置，移除有问题的 chainWebpack
   jsMinifier: 'terser',
@@ -113,15 +113,22 @@ export default defineConfig({
       routes: [
         {
           name: '类别转换配置',
-          path: 'category-conversion',
-          component: './CategoryConversion',
+          path: 'config/category-conversion',
+          component: './BussinessConfig/CategoryConversion',
           access: 'canAccessCategoryConversion',
         },
         {
           name: '参保档次配置',
-          path: 'insurance-level-config',
-          component: './InsuranceLevelConfig',
+          path: 'config/insurance-level-config',
+          component: './BussinessConfig/InsuranceLevelConfig',
           access: 'canAccessInsuranceLevelConfig',
+        },
+        /** 优抚救助 2025-12-20 */
+        {
+          name: '类别额度配置',
+          path: 'config/category-money-config',
+          component: './BussinessConfig/CategoryMoneyConfig',
+          access: 'canAccessCategoryMoneyConfig',
         },
       ],
     },
@@ -190,6 +197,26 @@ export default defineConfig({
           access: 'canAccessPatientManagement',
         },
       ],
+    },
+
+    /** 优抚救助 2025-12-20 */
+    {
+      name: '联网结算',
+      path: '/yf/settlement-online',
+      component: './YfSettlement/Online',
+      icon: 'GlobalOutlined',
+    },
+    {
+      name: '非联网结算',
+      path: '/yf/settlement-offline',
+      component: './YfSettlement/Offline',
+      icon: 'LogoutOutlined',
+    },
+    {
+      name: '结算台账',
+      path: '/yf/settlement-account',
+      component: './YfSettlement/Account',
+      icon: 'MoneyCollectOutlined',
     },
   ],
   npmClient: 'pnpm',

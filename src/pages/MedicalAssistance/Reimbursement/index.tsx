@@ -35,7 +35,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { reimbursementAPI, ReimbursementDetail, patientAPI, Patient, medicalRecordAPI, MedicalRecord } from '@/services/medicalAssistance';
-import {useAccess } from '@umijs/max';
+import { useAccess } from '@umijs/max';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -48,13 +48,13 @@ const Reimbursement: React.FC = () => {
     if (value === null || value === undefined || value === '') {
       return '¥0.00';
     }
-    
+
     const num = typeof value === 'string' ? parseFloat(value) : Number(value);
-    
+
     if (isNaN(num)) {
       return '¥0.00';
     }
-    
+
     return `¥${num.toFixed(2)}`;
   };
 
@@ -90,7 +90,7 @@ const Reimbursement: React.FC = () => {
         page_size: pageSize,
         ...filters,
       });
-      
+
       if (response.code === 0) {
         setReimbursements(response.data.data);
         setPagination({
@@ -194,7 +194,7 @@ const Reimbursement: React.FC = () => {
     form.setFieldsValue({
       medical_record_ids: [],
     });
-    
+
     if (personId) {
       fetchRecordsByPersonId(personId);
     }
@@ -246,7 +246,7 @@ const Reimbursement: React.FC = () => {
       critical_illness_reimbursement_ratio: record.critical_illness_reimbursement_ratio,
       reimbursement_status: record.reimbursement_status,
     });
-    
+
     // 编辑模式：只显示当前报销明细中已关联的就诊记录
     if (record.medical_records && record.medical_records.length > 0) {
       const recordIds = record.medical_records.map(r => r.id);
@@ -263,7 +263,7 @@ const Reimbursement: React.FC = () => {
       });
       setPatientRecords([]);
     }
-    
+
     setModalVisible(true);
   };
 
@@ -293,7 +293,7 @@ const Reimbursement: React.FC = () => {
           ...values,
         };
         delete updateData.person_id; // 编辑时不允许修改患者
-        
+
         const response = await reimbursementAPI.updateReimbursement(editingReimbursement.id, updateData);
         if (response.code === 0) {
           message.success('报销明细更新成功');
@@ -310,13 +310,13 @@ const Reimbursement: React.FC = () => {
       } else {
         // 批量创建报销明细
         // 检查是否选择了已报销的记录
-        const selectedRecords = patientRecords.filter(record => 
+        const selectedRecords = patientRecords.filter(record =>
           values.medical_record_ids && values.medical_record_ids.includes(record.id)
         );
-        const reimbursedRecords = selectedRecords.filter(record => 
+        const reimbursedRecords = selectedRecords.filter(record =>
           record.processing_status === 'reimbursed'
         );
-        
+
         if (reimbursedRecords.length > 0) {
           message.error('不能选择已报销的就诊记录');
           return;
@@ -351,14 +351,14 @@ const Reimbursement: React.FC = () => {
   const handleSearch = () => {
     const values = searchForm.getFieldsValue();
     const filters: Record<string, any> = {};
-    
+
     // 过滤空值
     Object.keys(values).forEach(key => {
       if (values[key] !== undefined && values[key] !== '') {
         filters[key] = values[key];
       }
     });
-    
+
     fetchReimbursements(1, pagination.pageSize, filters);
     setPagination(prev => ({ ...prev, current: 1 }));
   };
@@ -372,13 +372,13 @@ const Reimbursement: React.FC = () => {
   const handleTableChange = (pagination: any) => {
     const values = searchForm.getFieldsValue();
     const filters: Record<string, any> = {};
-    
+
     Object.keys(values).forEach(key => {
       if (values[key] !== undefined && values[key] !== '') {
         filters[key] = values[key];
       }
     });
-    
+
     fetchReimbursements(pagination.current, pagination.pageSize, filters);
   };
 
@@ -395,14 +395,14 @@ const Reimbursement: React.FC = () => {
       // 获取当前搜索表单的筛选条件
       const values = searchForm.getFieldsValue();
       const filters: Record<string, any> = {};
-      
+
       // 过滤空值
       Object.keys(values).forEach(key => {
         if (values[key] !== undefined && values[key] !== '') {
           filters[key] = values[key];
         }
       });
-      
+
       const response = await reimbursementAPI.exportLedger(filters);
       if (response.code === 0) {
         // 解码base64内容
@@ -411,10 +411,10 @@ const Reimbursement: React.FC = () => {
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        
+
         // 创建下载链接
-        const blob = new Blob([bytes], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        const blob = new Blob([bytes], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -424,7 +424,7 @@ const Reimbursement: React.FC = () => {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
+
         message.success('受理台账导出成功');
       } else {
         message.error(response.message || '导出失败');
@@ -536,19 +536,19 @@ const Reimbursement: React.FC = () => {
     if (record.person_info && record.person_info.name) {
       return record.person_info.name;
     }
-    
+
     // 从patients数组中查找
     const patient = patients.find(p => p.id === record.person_id);
     if (patient && patient.name) {
       return patient.name;
     }
-    
+
     // 如果都找不到，尝试通过API获取患者信息
     if (record.person_id && patients.length > 0) {
       // 如果patients数组已加载但没找到，可能是数据不同步
       console.warn(`患者ID ${record.person_id} 在patients数组中未找到`);
     }
-    
+
     // 最后的备用方案：显示ID，但提供更友好的提示
     return `患者ID: ${record.person_id}`;
   };
@@ -568,7 +568,7 @@ const Reimbursement: React.FC = () => {
   const getDetailedMedicalRecordInfo = (record: ReimbursementDetail) => {
     // 使用medical_records数组中的信息
     if (record.medical_records && record.medical_records.length > 0) {
-      const recordInfo = record.medical_records.map(medicalRecord => 
+      const recordInfo = record.medical_records.map(medicalRecord =>
         `${medicalRecord.hospital_name} - ${medicalRecord.visit_type}`
       ).join(', ');
       return recordInfo;
@@ -821,21 +821,21 @@ const Reimbursement: React.FC = () => {
               filterOption={(input, option) => {
                 if (!option?.children) return false;
                 const searchText = input.toLowerCase();
-                
+
                 // 获取患者数据用于搜索
                 const patient = patients.find(p => p.id === option?.value);
                 if (!patient) return false;
-                
+
                 // 可以按姓名或完整身份证号搜索
                 const nameMatch = patient.name.toLowerCase().includes(searchText);
                 const idCardMatch = patient.id_card?.toLowerCase().includes(searchText) || false;
-                
+
                 return nameMatch || idCardMatch;
               }}
             >
               {patients.map(patient => {
-                const idCardSuffix = patient.id_card && patient.id_card.length >= 6 
-                  ? patient.id_card.slice(-6) 
+                const idCardSuffix = patient.id_card && patient.id_card.length >= 6
+                  ? patient.id_card.slice(-6)
                   : patient.id_card || '';
                 return (
                   <Option key={patient.id} value={patient.id}>
@@ -845,7 +845,7 @@ const Reimbursement: React.FC = () => {
               })}
             </Select>
           </Form.Item>
-          
+
           <Form.Item name="bank_name" label="银行名称">
             <Input placeholder="请输入银行名称" allowClear />
           </Form.Item>
@@ -857,8 +857,8 @@ const Reimbursement: React.FC = () => {
             >
               {reimbursementStatuses.map(status => (
                 <Option key={status} value={status}>
-                  {status === 'pending' ? '未申请' : 
-                   status === 'processed' ? '已受理' : '作废'}
+                  {status === 'pending' ? '未申请' :
+                    status === 'processed' ? '已受理' : '作废'}
                 </Option>
               ))}
             </Select>
@@ -887,8 +887,8 @@ const Reimbursement: React.FC = () => {
               </Button>
             )}
             {access.canExportReimbursementManagement && (
-              <Button 
-                icon={<FileTextOutlined />} 
+              <Button
+                icon={<FileTextOutlined />}
                 onClick={handleExportLedger}
                 loading={exportLoading}
               >
@@ -963,51 +963,51 @@ const Reimbursement: React.FC = () => {
 
           <Row gutter={16}>
             <Col span={24}>
-                        <Form.Item
-            name="person_id"
-            label="患者"
-            rules={[{ required: true, message: '请选择患者' }]}
-          >
-            {editingReimbursement ? (
-              <Input 
-                value={editingReimbursement.person_info?.name || `患者ID: ${editingReimbursement.person_id}`} 
-                disabled 
-                placeholder="患者姓名"
-              />
-            ) : (
-              <Select
-                placeholder="请选择患者"
-                showSearch
-                optionFilterProp="children"
-                onChange={handlePersonChange}
-                filterOption={(input, option) => {
-                  if (!option?.children) return false;
-                  const searchText = input.toLowerCase();
-                  
-                  // 获取患者数据用于搜索
-                  const patient = patients.find(p => p.id === option?.value);
-                  if (!patient) return false;
-                  
-                  // 可以按姓名或完整身份证号搜索
-                  const nameMatch = patient.name.toLowerCase().includes(searchText);
-                  const idCardMatch = patient.id_card?.toLowerCase().includes(searchText) || false;
-                  
-                  return nameMatch || idCardMatch;
-                }}
+              <Form.Item
+                name="person_id"
+                label="患者"
+                rules={[{ required: true, message: '请选择患者' }]}
               >
-                {patients.map(patient => {
-                  const idCardSuffix = patient.id_card && patient.id_card.length >= 6 
-                    ? patient.id_card.slice(-6) 
-                    : patient.id_card || '';
-                  return (
-                    <Option key={patient.id} value={patient.id}>
-                      {patient.name} ({idCardSuffix})
-                    </Option>
-                  );
-                })}
-              </Select>
-            )}
-          </Form.Item>
+                {editingReimbursement ? (
+                  <Input
+                    value={editingReimbursement.person_info?.name || `患者ID: ${editingReimbursement.person_id}`}
+                    disabled
+                    placeholder="患者姓名"
+                  />
+                ) : (
+                  <Select
+                    placeholder="请选择患者"
+                    showSearch
+                    optionFilterProp="children"
+                    onChange={handlePersonChange}
+                    filterOption={(input, option) => {
+                      if (!option?.children) return false;
+                      const searchText = input.toLowerCase();
+
+                      // 获取患者数据用于搜索
+                      const patient = patients.find(p => p.id === option?.value);
+                      if (!patient) return false;
+
+                      // 可以按姓名或完整身份证号搜索
+                      const nameMatch = patient.name.toLowerCase().includes(searchText);
+                      const idCardMatch = patient.id_card?.toLowerCase().includes(searchText) || false;
+
+                      return nameMatch || idCardMatch;
+                    }}
+                  >
+                    {patients.map(patient => {
+                      const idCardSuffix = patient.id_card && patient.id_card.length >= 6
+                        ? patient.id_card.slice(-6)
+                        : patient.id_card || '';
+                      return (
+                        <Option key={patient.id} value={patient.id}>
+                          {patient.name} ({idCardSuffix})
+                        </Option>
+                      );
+                    })}
+                  </Select>
+                )}
+              </Form.Item>
             </Col>
 
           </Row>
@@ -1051,15 +1051,15 @@ const Reimbursement: React.FC = () => {
                   {(() => {
                     // 根据新增/编辑模式以及当前状态来过滤可选状态
                     let availableStatuses = reimbursementStatuses;
-                    
+
                     // 如果状态数组还没有加载，使用默认状态
                     if (reimbursementStatuses.length === 0) {
                       availableStatuses = ['pending', 'processed', 'void'];
                     }
-                    
+
                     if (!editingReimbursement) {
                       // 新增时：只能选择未申请和已受理
-                      availableStatuses = availableStatuses.filter(status => 
+                      availableStatuses = availableStatuses.filter(status =>
                         status === 'pending' || status === 'processed'
                       );
                     } else {
@@ -1068,31 +1068,31 @@ const Reimbursement: React.FC = () => {
                       console.log('当前编辑的报销状态:', currentStatus);
                       console.log('所有可用状态:', availableStatuses);
                       console.log('编辑模式:', !!editingReimbursement);
-                      
+
                       if (currentStatus === 'pending') {
                         // 未申请状态：可以改成已受理和作废，保留当前状态
-                        availableStatuses = availableStatuses.filter(status => 
+                        availableStatuses = availableStatuses.filter(status =>
                           status === 'pending' || status === 'processed' || status === 'void'
                         );
                       } else if (currentStatus === 'processed') {
                         // 已受理状态：可以改成作废，保留当前状态
-                        availableStatuses = availableStatuses.filter(status => 
+                        availableStatuses = availableStatuses.filter(status =>
                           status === 'processed' || status === 'void'
                         );
                       } else if (currentStatus === 'void') {
                         // 作废状态：保留当前状态，不允许改成其他状态
-                        availableStatuses = availableStatuses.filter(status => 
+                        availableStatuses = availableStatuses.filter(status =>
                           status === 'void'
                         );
                       }
                     }
-                    
+
                     console.log('过滤后的可用状态:', availableStatuses);
-                    
+
                     return availableStatuses.map(status => (
                       <Option key={status} value={status}>
-                        {status === 'pending' ? '未申请' : 
-                         status === 'processed' ? '已受理' : '作废'}
+                        {status === 'pending' ? '未申请' :
+                          status === 'processed' ? '已受理' : '作废'}
                       </Option>
                     ));
                   })()}
@@ -1217,20 +1217,20 @@ const Reimbursement: React.FC = () => {
             </>
           )}
 
-          
+
           {/* 就诊记录选择表格 */}
           {(
             <div style={{ marginTop: 24 }}>
               <div style={{ marginBottom: 16 }}>
                 <h4>就诊记录选择</h4>
                 <p style={{ color: '#666', fontSize: 12 }}>
-                  {editingReimbursement 
+                  {editingReimbursement
                     ? '当前显示的是该报销明细中已关联的就诊记录。您可以取消选择某些记录，但无法添加新的就诊记录。'
                     : '请先选择患者，然后在下表中选择需要报销的就诊记录。已报销的记录将无法选择。选中的记录将自动添加到报销明细中。'
                   }
                 </p>
               </div>
-              
+
               {patientRecords.length > 0 ? (
                 <Table
                   columns={recordColumns}
@@ -1250,8 +1250,8 @@ const Reimbursement: React.FC = () => {
                   style={{ marginTop: 8 }}
                 />
               ) : (
-                <div style={{ 
-                  textAlign: 'center', 
+                <div style={{
+                  textAlign: 'center',
                   padding: '40px 20px',
                   color: '#999',
                   backgroundColor: '#fafafa',
@@ -1311,7 +1311,7 @@ const Reimbursement: React.FC = () => {
                 <p><strong>更新时间：</strong>{dayjs(selectedReimbursement.updated_at).format('YYYY-MM-DD HH:mm:ss')}</p>
               </Col>
             </Row>
-            
+
             {/* 就诊记录表格 */}
             <div style={{ marginTop: 24 }}>
               <h4>就诊记录详情</h4>
@@ -1325,8 +1325,8 @@ const Reimbursement: React.FC = () => {
                   scroll={{ x: 1200 }}
                 />
               ) : (
-                <div style={{ 
-                  textAlign: 'center', 
+                <div style={{
+                  textAlign: 'center',
                   padding: '20px',
                   color: '#999',
                   backgroundColor: '#fafafa',

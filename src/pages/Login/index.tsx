@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { history } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import { getConfig } from '../../config';
 import styles from './index.less';
 
@@ -12,7 +12,13 @@ interface LoginForm {
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const { initialState } = useModel('@@initialState');
   const config = getConfig();
+
+  useEffect(() => {
+    const appName = initialState?.initData?.app || '共享救助信息服务平台5';
+    document.title = `${appName} - 登录`;
+  }, [initialState]);
 
   const onFinish = async (values: LoginForm) => {
     setLoading(true);
@@ -46,9 +52,11 @@ const Login: React.FC = () => {
     }
   };
 
+  const appName = initialState?.initData?.app || '共享救助信息服务平台';
+
   return (
     <div className={styles.container}>
-      <Card title="共享救助信息服务平台" className={styles.loginCard}>
+      <Card title={appName} className={styles.loginCard}>
         <Form
           name="login"
           onFinish={onFinish}

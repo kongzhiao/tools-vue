@@ -32,15 +32,15 @@ function convertMenuData(menuData: any[]): any[] {
       path: menu.path,
       icon: menu.icon,
     };
-    
+
     if (menu.component) {
       convertedMenu.component = menu.component;
     }
-    
+
     if (menu.children && menu.children.length > 0) {
       convertedMenu.routes = convertMenuData(menu.children);
     }
-    
+
     return convertedMenu;
   });
 }
@@ -56,13 +56,31 @@ export async function getInitialState(): Promise<{
     permissions: string[];
   };
   menus?: any[];
+  initData?: {
+    app: string;
+    env: string;
+  };
 }> {
   // 强制清除缓存，确保每次都重新获取数据
   localStorage.removeItem('umi_initial_state');
-  
+
+  // 获取全局初始化配置
+  let initData;
+  try {
+    const initResponse = await fetch(`${config.apiBaseUrl}/api/init`);
+    if (initResponse.ok) {
+      const res = await initResponse.json();
+      if (res.code === 0) {
+        initData = res.data;
+      }
+    }
+  } catch (error) {
+    console.error('获取初始化数据失败:', error);
+  }
+
   // 如果是登录页面，不需要获取用户信息
   if (window.location.pathname === '/login') {
-    return { name: '未登录', menus: [] };
+    return { name: '未登录', menus: [], initData };
   }
 
   // 检查是否有 token
@@ -72,7 +90,7 @@ export async function getInitialState(): Promise<{
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
     }
-    return { name: '未登录', menus: [] };
+    return { name: '未登录', menus: [], initData };
   }
 
   try {
@@ -89,7 +107,7 @@ export async function getInitialState(): Promise<{
     const data = await response.json();
     if (data.code === 0 && data.data) {
       const userData = data.data;
-      
+
       // 获取用户菜单
       let menus = [];
       try {
@@ -100,12 +118,9 @@ export async function getInitialState(): Promise<{
         });
         if (menuResponse.ok) {
           const menuData = await menuResponse.json();
-          console.log(menuData)
           if (menuData.code === 0) {
             menus = convertMenuData(menuData.data || []);
           }
-
-          console.log(menus)
         }
       } catch (error) {
         console.error('获取菜单失败:', error);
@@ -120,6 +135,7 @@ export async function getInitialState(): Promise<{
           permissions: Array.isArray(userData.permissions) ? userData.permissions : [],
         },
         menus,
+        initData,
       };
     }
   } catch (error) {
@@ -133,13 +149,22 @@ export async function getInitialState(): Promise<{
   if (window.location.pathname !== '/login') {
     window.location.href = '/login';
   }
-  return { name: '未登录', menus: [] };
+  return { name: '未登录', menus: [], initData };
 }
 
 export const layout = ({ initialState }: { initialState: any }) => {
-  console.log(initialState)
+  const appName = initialState?.initData?.app || '共享救助信息服务平台3';
+
   return {
+    title: appName,
     logo: 'https://img.alicdn.com/tfs/TB1YHEpwUT1gK0jSZFhXXaAtVXa-28-27.svg',
+    // 自定义页面标题
+    pageTitleRender: (props: any, defaultPageTitle: any, info: any) => {
+      if (info?.pageName) {
+        return `${appName} - ${info.pageName}`;
+      }
+      return appName;
+    },
     menu: {
       locale: false,
       // 自定义菜单配置
@@ -153,19 +178,19 @@ export const layout = ({ initialState }: { initialState: any }) => {
     // 自定义右侧内容，显示用户信息（通过CSS移动到左侧）
     rightContentRender: () => {
       if (!initialState?.currentUser) return null;
-      
+
       // 使用 React.createElement 创建元素
       const React = require('react');
-      
+
       const handleLogout = () => {
         localStorage.removeItem('token');
         window.location.href = '/login';
       };
-      
+
       return React.createElement('div', {
         style: {
         }
-      }, 
+      },
         React.createElement(Popconfirm, {
           title: '确定要退出登录吗？',
           description: '退出后需要重新登录才能访问系统',
@@ -173,7 +198,7 @@ export const layout = ({ initialState }: { initialState: any }) => {
           okText: '确定',
           cancelText: '取消',
           placement: 'bottomRight'
-        }, 
+        },
           React.createElement('div', {
             style: {
               display: 'flex',
@@ -249,7 +274,7 @@ export const request = {
         window.location.href = '/login';
       }
     },
-    errorThrower: () => {},
+    errorThrower: () => { },
   },
   requestInterceptors: [
     (config: any) => {

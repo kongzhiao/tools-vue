@@ -549,7 +549,7 @@ const InsuranceDataPage: React.FC = () => {
     {
       title: '序号',
       dataIndex: 'id',
-      width: 60,
+      width: 100,
       align: 'center',
       fixed: 'left',
     },
@@ -562,12 +562,12 @@ const InsuranceDataPage: React.FC = () => {
     {
       title: '身份证号',
       dataIndex: 'id_number',
-      width: 180,
+      width: 200,
     },
     {
       title: '档次匹配状态',
       dataIndex: 'level_match_status',
-      width: 110,
+      width: 160,
       align: 'center',
       render: (text: string, record: InsuranceData) => (
         <EditableCell
@@ -585,7 +585,7 @@ const InsuranceDataPage: React.FC = () => {
     {
       title: '医疗救助匹配状态',
       dataIndex: 'assistance_identity_match_status',
-      width: 140,
+      width: 160,
       render: (text: string, record: InsuranceData) => (
         <EditableCell
           value={text || ''}
@@ -602,7 +602,7 @@ const InsuranceDataPage: React.FC = () => {
     {
       title: '认定区匹配状态',
       dataIndex: 'street_town_match_status',
-      width: 140,
+      width: 160,
       render: (text: string, record: InsuranceData) => (
         <EditableCell
           value={text || ''}
@@ -643,12 +643,12 @@ const InsuranceDataPage: React.FC = () => {
     {
       title: '代缴类别',
       dataIndex: 'payment_category',
-      width: 120,
+      width: 200,
     },
     {
       title: '档次',
       dataIndex: 'level',
-      width: 80,
+      width: 120,
       render: (text: string) => text || '-',
     },
     {
@@ -668,7 +668,7 @@ const InsuranceDataPage: React.FC = () => {
     {
       title: '个人实缴金额',
       dataIndex: 'personal_amount',
-      width: 100,
+      width: 120,
       align: 'right',
       render: (value) => value ? `¥${Number(value).toFixed(2)}` : '-',
     },

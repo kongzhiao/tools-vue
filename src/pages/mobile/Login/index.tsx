@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Input, Button, Toast } from 'antd-mobile';
-import { history } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import { getConfig } from '@/config';
 import styles from './index.less';
 
@@ -11,7 +11,13 @@ interface LoginForm {
 
 const MobileLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const { initialState } = useModel('@@initialState');
   const config = getConfig();
+
+  useEffect(() => {
+    const appName = initialState?.initData?.app || '共享救助信息服务平台';
+    document.title = `${appName} - 登录`;
+  }, [initialState]);
 
   const onFinish = async (values: LoginForm) => {
     setLoading(true);
@@ -54,10 +60,12 @@ const MobileLogin: React.FC = () => {
     }
   };
 
+  const appName = initialState?.initData?.app || '共享救助信息服务平台';
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>共享救助信息服务平台</h1>
+        <h1>{appName}</h1>
       </div>
       <Form
         layout='horizontal'

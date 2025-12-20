@@ -147,6 +147,41 @@ export default (initialState: {
     canExportReimbursementManagement: hasPermission('受理记录:导出'),
     canAccessReimbursementManagement: hasModulePermission('受理记录'),
 
+
+    /** 优抚救助 2025-12-20 */
+    // 类别额度配置
+    canReadCategoryMoneyConfig: hasPermission('类别额度配置:查看'),
+    canCreateCategoryMoneyConfig: hasPermission('类别额度配置:创建'),
+    canUpdateCategoryMoneyConfig: hasPermission('类别额度配置:编辑'),
+    canDeleteCategoryMoneyConfig: hasPermission('类别额度配置:删除'),
+    canAccessCategoryMoneyConfig: hasModulePermission('类别额度配置'),
+
+    // 联网结算
+    canReadOnlineSettlement: hasPermission('联网结算:查看'),
+    canImportOnlineSettlement: hasPermission('联网结算:导入'),
+    canExportOnlineSettlement: hasPermission('联网结算:导出'),
+    canTagOnlineSettlement: hasPermission('联网结算:标记'),
+    canDeleteOnlineSettlement: hasPermission('联网结算:删除'),
+    canAccessOnlineSettlement: hasModulePermission('联网结算'),
+    
+    // 非联网结算
+    canReadOfflineSettlement: hasPermission('非联网结算:查看'),
+    canImportOfflineSettlement: hasPermission('非联网结算:导入'),
+    canExportOfflineSettlement: hasPermission('非联网结算:导出'),
+    canTagOfflineSettlement: hasPermission('非联网结算:标记'),
+    canDeleteOfflineSettlement: hasPermission('非联网结算:删除'),
+    canAccessOfflineSettlement: hasModulePermission('非联网结算'),
+    
+    // 结算台账
+    canReadSettlementAccount: hasPermission('结算台账:查看'),
+    canImportSettlementAccount: hasPermission('结算台账:导入'),
+    canExportSettlementAccount: hasPermission('结算台账:导出'),
+    canTagSettlementAccount: hasPermission('结算台账:标记'),
+    canDeleteSettlementAccount: hasPermission('结算台账:删除'),
+    canAccessSettlementAccount: hasModulePermission('结算台账'),
+    
+
+
     // 通用权限检查函数
     hasPermission,
     hasModulePermission,

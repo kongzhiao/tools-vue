@@ -12,7 +12,7 @@ import {
   Popconfirm,
   Tag,
   Row,
-  Col, 
+  Col,
   Statistic,
   Spin,
 } from 'antd';
@@ -25,17 +25,17 @@ import {
   EditOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { PageContainer } from '@ant-design/pro-layout';
+import { PageContainer } from '@ant-design/pro-components';
 import { request, useAccess } from '@umijs/max';
 import ImportModal from './components/ImportModal';
 import PersonTimeStatisticsModal from './components/PersonTimeStatisticsModal';
 import ReimbursementStatisticsModal from './components/ReimbursementStatisticsModal';
 import TiltAssistanceStatisticsModal from './components/TiltAssistanceStatisticsModal';
-import { 
-  getStatisticsList, 
-  getProjects, 
-  createProject, 
-  updateProject, 
+import {
+  getStatisticsList,
+  getProjects,
+  createProject,
+  updateProject,
   deleteProject,
   clearProjectData,
   getPersonTimeStatistics,
@@ -43,7 +43,7 @@ import {
   getTiltAssistanceStatistics,
   exportDetailStatistics,
   Project,
-  StatisticsData 
+  StatisticsData
 } from '@/services/statisticsSummary';
 
 const { Option } = Select;
@@ -94,11 +94,11 @@ const StatisticsSummary: React.FC = () => {
         pageSize,
         ...searchValues,
       };
-      
+
       const response = await getStatisticsList(params);
       setData(response.data.data || []);
       setTotal(response.data.total || 0);
-      
+
 
     } catch (error) {
       message.error('获取数据失败');
@@ -121,14 +121,14 @@ const StatisticsSummary: React.FC = () => {
     if (value === null || value === undefined || value === '') {
       return '¥0.00';
     }
-    
+
     // 确保转换为数字
     const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
-    
+
     if (isNaN(numValue)) {
       return '¥0.00';
     }
-    
+
     return `¥${numValue.toFixed(2)}`;
   };
 
@@ -221,7 +221,7 @@ const StatisticsSummary: React.FC = () => {
     try {
       const projectIds = selectedRowKeys.map(id => Number(id));
       const response = await getPersonTimeStatistics({ project_ids: projectIds });
-      
+
       if (response.code === 200) {
         setStatisticsData(response.data);
       } else {
@@ -247,7 +247,7 @@ const StatisticsSummary: React.FC = () => {
     try {
       const projectIds = selectedRowKeys.map(id => Number(id));
       const response = await getReimbursementStatistics({ project_ids: projectIds });
-      
+
       if (response.code === 200) {
         setReimbursementData(response.data);
       } else {
@@ -273,7 +273,7 @@ const StatisticsSummary: React.FC = () => {
     try {
       const projectIds = selectedRowKeys.map(id => Number(id));
       const response = await getTiltAssistanceStatistics({ project_ids: projectIds });
-      
+
       if (response.code === 200) {
         setTiltAssistanceData(response.data);
       } else {
@@ -296,7 +296,7 @@ const StatisticsSummary: React.FC = () => {
     try {
       const projectIds = selectedRowKeys.map(id => Number(id));
       const response = await exportDetailStatistics({ project_ids: projectIds });
-      
+
       if (response.code === 200) {
         // 创建下载链接
         const blob = new Blob([Uint8Array.from(atob(response.data.content), c => c.charCodeAt(0))], {
@@ -310,7 +310,7 @@ const StatisticsSummary: React.FC = () => {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
+
         message.success('明细统计导出成功');
       } else {
         message.error(response.message || '导出失败');
@@ -342,7 +342,7 @@ const StatisticsSummary: React.FC = () => {
         project_id: projectId.toString(),
         ...searchValues,
       };
-      
+
       console.log('fetchDetailData 参数:', params);
       const response = await getStatisticsList(params);
       console.log('fetchDetailData 响应:', response.data);
@@ -388,7 +388,7 @@ const StatisticsSummary: React.FC = () => {
       message.error('项目ID无效');
       return;
     }
-    
+
     setSelectedProjectId(projectId);
     setImportModalVisible(true);
   };
@@ -399,7 +399,7 @@ const StatisticsSummary: React.FC = () => {
       message.error('项目ID无效');
       return;
     }
-    
+
     try {
       await clearProjectData(projectId);
       message.success('数据清空成功');
@@ -752,39 +752,39 @@ const StatisticsSummary: React.FC = () => {
           }}
           footer={null}
         >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleProjectSubmit}
-        >
-          <Form.Item
-            name="code"
-            label="年月号"
-            rules={[{ required: true, message: '请输入年月号' }]}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleProjectSubmit}
           >
-            <Input placeholder="请输入年月号" />
-          </Form.Item>
-          <Form.Item
-            name="dec"
-            label="描述"
-          >
-            <Input placeholder="请输入描述" />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                {editingProject ? '更新' : '创建'}
-              </Button>
-              <Button onClick={() => {
-                setProjectModalVisible(false);
-                setEditingProject(null);
-                form.resetFields();
-              }}>
-                取消
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+            <Form.Item
+              name="code"
+              label="年月号"
+              rules={[{ required: true, message: '请输入年月号' }]}
+            >
+              <Input placeholder="请输入年月号" />
+            </Form.Item>
+            <Form.Item
+              name="dec"
+              label="描述"
+            >
+              <Input placeholder="请输入描述" />
+            </Form.Item>
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  {editingProject ? '更新' : '创建'}
+                </Button>
+                <Button onClick={() => {
+                  setProjectModalVisible(false);
+                  setEditingProject(null);
+                  form.resetFields();
+                }}>
+                  取消
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
         </Modal>
       ) : null}
 
@@ -817,97 +817,97 @@ const StatisticsSummary: React.FC = () => {
             </Button>
           ]}
         >
-        {/* 搜索表单 */}
-        <Card style={{ marginBottom: 16 }}>
-          <Form
-            form={detailSearchForm}
-            layout="inline"
-            style={{ marginBottom: 16 }}
-          >
-            <Form.Item name="data_type" label="数据类型">
-              <Select
-                placeholder="请选择数据类型"
-                allowClear
-                style={{ width: 120 }}
-              >
-                <Select.Option value="区内明细">区内明细</Select.Option>
-                <Select.Option value="跨区明细">跨区明细</Select.Option>
-                <Select.Option value="手工明细">手工明细</Select.Option>
-              </Select>
-            </Form.Item>
-            <Form.Item name="street_town" label="街道/乡镇">
-              <Input placeholder="请输入街道/乡镇" style={{ width: 120 }} />
-            </Form.Item>
-            <Form.Item name="name" label="姓名">
-              <Input placeholder="请输入姓名" style={{ width: 120 }} />
-            </Form.Item>
-            <Form.Item name="id_number" label="证件号码">
-              <Input placeholder="请输入证件号码" style={{ width: 150 }} />
-            </Form.Item>
-            <Form.Item>
-              <Space>
-                <Button type="primary" onClick={handleDetailSearch}>
-                  搜索
-                </Button>
-                <Button onClick={handleDetailReset}>
-                  重置
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        </Card>
+          {/* 搜索表单 */}
+          <Card style={{ marginBottom: 16 }}>
+            <Form
+              form={detailSearchForm}
+              layout="inline"
+              style={{ marginBottom: 16 }}
+            >
+              <Form.Item name="data_type" label="数据类型">
+                <Select
+                  placeholder="请选择数据类型"
+                  allowClear
+                  style={{ width: 120 }}
+                >
+                  <Select.Option value="区内明细">区内明细</Select.Option>
+                  <Select.Option value="跨区明细">跨区明细</Select.Option>
+                  <Select.Option value="手工明细">手工明细</Select.Option>
+                </Select>
+              </Form.Item>
+              <Form.Item name="street_town" label="街道/乡镇">
+                <Input placeholder="请输入街道/乡镇" style={{ width: 120 }} />
+              </Form.Item>
+              <Form.Item name="name" label="姓名">
+                <Input placeholder="请输入姓名" style={{ width: 120 }} />
+              </Form.Item>
+              <Form.Item name="id_number" label="证件号码">
+                <Input placeholder="请输入证件号码" style={{ width: 150 }} />
+              </Form.Item>
+              <Form.Item>
+                <Space>
+                  <Button type="primary" onClick={handleDetailSearch}>
+                    搜索
+                  </Button>
+                  <Button onClick={handleDetailReset}>
+                    重置
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
 
-        {/* 导入数据按钮 */}
-        <div style={{ marginBottom: 16, textAlign: 'right' }}>
-          <Space>
-            {access.canImportStatisticsSummary && (
-              <Button 
-                type="primary" 
-                icon={<UploadOutlined />}
-                onClick={() => selectedProjectId && handleProjectImport(selectedProjectId)}
-                disabled={!selectedProjectId}
-              >
-                导入数据
-              </Button>
-            )}
-            {access.canClearStatisticsSummary && (
-              <Popconfirm
-                title="确定要清空该项目的所有数据吗？"
-                description="清空后可以重新导入数据，但无法恢复已删除的数据"
-                onConfirm={() => selectedProjectId && handleClearProjectData(selectedProjectId)}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button 
-                  danger
-                  icon={<DeleteOutlined />}
+          {/* 导入数据按钮 */}
+          <div style={{ marginBottom: 16, textAlign: 'right' }}>
+            <Space>
+              {access.canImportStatisticsSummary && (
+                <Button
+                  type="primary"
+                  icon={<UploadOutlined />}
+                  onClick={() => selectedProjectId && handleProjectImport(selectedProjectId)}
                   disabled={!selectedProjectId}
                 >
-                  清空数据
+                  导入数据
                 </Button>
-              </Popconfirm>
-            )}
-          </Space>
-        </div>
+              )}
+              {access.canClearStatisticsSummary && (
+                <Popconfirm
+                  title="确定要清空该项目的所有数据吗？"
+                  description="清空后可以重新导入数据，但无法恢复已删除的数据"
+                  onConfirm={() => selectedProjectId && handleClearProjectData(selectedProjectId)}
+                  okText="确定"
+                  cancelText="取消"
+                >
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    disabled={!selectedProjectId}
+                  >
+                    清空数据
+                  </Button>
+                </Popconfirm>
+              )}
+            </Space>
+          </div>
 
-        <Table
-          columns={columns}
-          dataSource={detailData}
-          rowKey="id"
-          loading={detailLoading}
-          pagination={{
-            current: detailCurrent,
-            pageSize: detailPageSize,
-            total: detailTotal,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
-          }}
-          onChange={handleDetailTableChange}
-          scroll={{ x: 2000 }}
-          size="small"
-        />
+          <Table
+            columns={columns}
+            dataSource={detailData}
+            rowKey="id"
+            loading={detailLoading}
+            pagination={{
+              current: detailCurrent,
+              pageSize: detailPageSize,
+              total: detailTotal,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) =>
+                `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
+            }}
+            onChange={handleDetailTableChange}
+            scroll={{ x: 2000 }}
+            size="small"
+          />
         </Modal>
       )}
 
