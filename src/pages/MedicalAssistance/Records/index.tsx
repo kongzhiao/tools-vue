@@ -54,6 +54,9 @@ const Records: React.FC = () => {
     current: 1,
     pageSize: 15,
     total: 0,
+    unreimbursed: 0,
+    reimbursed: 0,
+    returned: 0,
   });
   const [patients, setPatients] = useState<Patient[]>([]);
   const [visitTypes, setVisitTypes] = useState<string[]>([]);
@@ -76,6 +79,9 @@ const Records: React.FC = () => {
           current: response.data.page,
           pageSize: response.data.page_size,
           total: response.data.total,
+          unreimbursed: response.data.statics.unreimbursed,
+          reimbursed: response.data.statics.reimbursed,
+          returned: response.data.statics.returned,
         });
       } else {
         message.error(response.message || '获取就诊记录失败');
@@ -530,7 +536,7 @@ const Records: React.FC = () => {
           <Card>
             <Statistic
               title="未报销"
-              value={records.filter(r => r.processing_status === 'unreimbursed').length}
+              value={pagination.unreimbursed}
               prefix={<CalendarOutlined />}
               valueStyle={{ color: '#fa8c16' }}
             />
@@ -540,7 +546,7 @@ const Records: React.FC = () => {
           <Card>
             <Statistic
               title="已报销"
-              value={records.filter(r => r.processing_status === 'reimbursed').length}
+              value={pagination.reimbursed}
               prefix={<FileTextOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
@@ -550,7 +556,7 @@ const Records: React.FC = () => {
           <Card>
             <Statistic
               title="已退回"
-              value={records.filter(r => r.processing_status === 'returned').length}
+              value={pagination.returned}
               prefix={<DollarOutlined />}
               valueStyle={{ color: '#ff4d4f' }}
             />
@@ -699,6 +705,9 @@ const Records: React.FC = () => {
             current: pagination.current,
             pageSize: pagination.pageSize,
             total: pagination.total,
+            unreimbursed: pagination.unreimbursed,
+            reimbursed: pagination.reimbursed,
+            returned: pagination.returned,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
