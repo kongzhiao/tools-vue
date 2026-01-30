@@ -115,14 +115,14 @@ const InsuranceDataPage: React.FC = () => {
     page_size: 10,
   });
   const [statistics, setStatistics] = useState<StatisticsResult | null>(null);
-  
+
   // 下拉选项数据
   const [years, setYears] = useState<number[]>([]);
   const [streetTowns, setStreetTowns] = useState<string[]>([]);
   const [paymentCategories, setPaymentCategories] = useState<string[]>([]);
   const [levels, setLevels] = useState<string[]>([]);
   const [medicalAssistanceCategories, setMedicalAssistanceCategories] = useState<string[]>([]);
-  
+
   // 弹窗状态
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [batchModalVisible, setBatchModalVisible] = useState(false);
@@ -134,7 +134,7 @@ const InsuranceDataPage: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number | undefined>(2025);
   const [currentYear, setCurrentYear] = useState<InsuranceYear>();
   const [importModalVisible, setImportModalVisible] = useState(false);
-  
+
   // 年份管理相关状态
   const [yearList, setYearList] = useState<InsuranceYear[]>([]);
   const [yearListLoading, setYearListLoading] = useState(false);
@@ -146,7 +146,7 @@ const InsuranceDataPage: React.FC = () => {
   const [importForm] = Form.useForm();
   const [currentEditYear, setCurrentEditYear] = useState<InsuranceYear | null>(null);
   const [currentImportYear, setCurrentImportYear] = useState<InsuranceYear | null>(null);
-  
+
   // 表单实例
   const [editForm] = Form.useForm();
   const [batchForm] = Form.useForm();
@@ -439,7 +439,7 @@ const InsuranceDataPage: React.FC = () => {
     setCurrentYear(year);
     setLevelMatchModalVisible(true);
   };
-  
+
 
   // 显示导入认定区模态框
   const handleShowImportsTreetTowMatchModal = (year: InsuranceYear) => {
@@ -467,49 +467,23 @@ const InsuranceDataPage: React.FC = () => {
     }
   };
 
-  // 导出参保数据
+  // 导出参保数据匹配结果（异步任务）
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      // 先获取导出信息
-      const infoResponse = await getExportInfo({
-        ...filters,
-        year: selectedYear,
-      });
-      
-      if (infoResponse.code !== 0) {
-        message.error(infoResponse.message || '获取导出信息失败');
-        return;
-      }
-      
-      const exportInfo = infoResponse.data;
-      
-      // 检查是否可以导出
-      if (!exportInfo.can_export) {
-        message.error('数据量过大，无法导出');
-        return;
-      }
-      
-      // 执行导出
+      // 执行异步导出
       const response = await exportInsuranceData({
         ...filters,
         year: selectedYear,
       });
-      
-      // 创建下载链接
-      const blob = new Blob([response], { 
-        type: 'text/csv; charset=utf-8'
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${selectedYear}年参保数据.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      message.success(`导出成功，共${exportInfo.total_count}条记录`);
+
+      if (response.code === 0) {
+        message.success(response.message || '导出任务已提交');
+        // 触发全局事件打开任务中心
+        window.dispatchEvent(new CustomEvent('openTaskCenter'));
+      } else {
+        message.error(response.message || '导出失败');
+      }
     } catch (error) {
       console.error('导出失败:', error);
       message.error('导出失败');
@@ -527,8 +501,8 @@ const InsuranceDataPage: React.FC = () => {
       if (response.code === 0) {
         message.success('更新成功');
         // 更新本地数据
-        setDataSource(prev => 
-          prev.map(item => 
+        setDataSource(prev =>
+          prev.map(item =>
             item.id === record.id ? { ...item, [field]: value } : item
           )
         );
@@ -657,7 +631,7 @@ const InsuranceDataPage: React.FC = () => {
       width: 120,
       ellipsis: true,
     },
-    
+
     {
       title: '代缴金额',
       dataIndex: 'payment_amount',
@@ -859,7 +833,7 @@ const InsuranceDataPage: React.FC = () => {
             </Select>
           </Form.Item>
         </Col>
-         {/* 第四行：匹配状态和按钮 */}
+        {/* 第四行：匹配状态和按钮 */}
         <Col span={6}>
           <Form.Item label="认定区匹配状态" style={{ marginBottom: 0 }}>
             <Select
@@ -874,7 +848,7 @@ const InsuranceDataPage: React.FC = () => {
             </Select>
           </Form.Item>
         </Col>
-         <Col span={6}>
+        <Col span={6}>
           <Form.Item label="匹配状态" style={{ marginBottom: 0 }}>
             <Select
               style={{ width: '100%' }}
@@ -901,7 +875,7 @@ const InsuranceDataPage: React.FC = () => {
     </div>
   );
 
-    // 统计卡片
+  // 统计卡片
   const statisticsCards = statistics && (
     <div style={{ marginBottom: 16 }}>
       <Row gutter={16}>
@@ -920,7 +894,7 @@ const InsuranceDataPage: React.FC = () => {
               title="正确数据"
               value={statistics.matched_count}
               valueStyle={{ color: '#52c41a' }}
-              // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
+            // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
             />
           </Card>
         </Col>
@@ -930,7 +904,7 @@ const InsuranceDataPage: React.FC = () => {
               title="待匹配数量"
               value={statistics.unmatched_data_count}
               valueStyle={{ color: '#1677ff' }}
-              // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
+            // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
             />
           </Card>
         </Col>
@@ -940,7 +914,7 @@ const InsuranceDataPage: React.FC = () => {
               title="疑点数据"
               value={statistics.unmatched_count}
               valueStyle={{ color: '#ff4d4f' }}
-              // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
+            // suffix={<span style={{ fontSize: '14px', color: '#666' }}>/ {statistics.total}</span>}
             />
           </Card>
         </Col>
@@ -963,7 +937,7 @@ const InsuranceDataPage: React.FC = () => {
     <PageContainer>
       {statisticsCards}
       {filterForm}
-      
+
       <Card>
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -1010,29 +984,29 @@ const InsuranceDataPage: React.FC = () => {
 
 
             {access.canImportInsuranceData && (
-              <Button 
+              <Button
                 type="default"
-                icon={<UploadOutlined />} 
-                  onClick={() => {
-                    if (!selectedYear) {
-                      message.warning('请先选择年份');
-                      return;
-                    }
-                    const currentYear = yearList.find(y => y.year === selectedYear);
-                    if (currentYear) {
-                      handleShowImportLevelMatchModal(currentYear);
-                    } else {
-                      message.warning('请先在年份管理中创建该年份');
-                    }
-                  }}
+                icon={<UploadOutlined />}
+                onClick={() => {
+                  if (!selectedYear) {
+                    message.warning('请先选择年份');
+                    return;
+                  }
+                  const currentYear = yearList.find(y => y.year === selectedYear);
+                  if (currentYear) {
+                    handleShowImportLevelMatchModal(currentYear);
+                  } else {
+                    message.warning('请先在年份管理中创建该年份');
+                  }
+                }}
               >
                 导入参保档次匹配数据
               </Button>
             )}
             {access.canImportInsuranceData && (
-              <Button 
+              <Button
                 type="default"
-                icon={<UploadOutlined />} 
+                icon={<UploadOutlined />}
                 onClick={() => {
                   if (!selectedYear) {
                     message.warning('请先选择年份');
@@ -1074,14 +1048,21 @@ const InsuranceDataPage: React.FC = () => {
             )}
 
             {access.canExportInsuranceData && (
-              <Button
-                type="default"
-                icon={<DownloadOutlined />}
-                onClick={handleExport}
-                loading={exportLoading}
+              <Popconfirm
+                title="确定要导出匹配结果吗？"
+                description="导出任务将在后台执行，您可以在任务中心查看进度"
+                onConfirm={handleExport}
+                okText="确定"
+                cancelText="取消"
               >
-                导出CSV
-              </Button>
+                <Button
+                  type="default"
+                  icon={<DownloadOutlined />}
+                  loading={exportLoading}
+                >
+                  导出匹配结果
+                </Button>
+              </Popconfirm>
             )}
             {access.canUpdateInsuranceData && (
               <Button
@@ -1395,7 +1376,7 @@ const InsuranceDataPage: React.FC = () => {
             </Button>
           )}
         </div>
-        
+
         <Table
           dataSource={yearList}
           loading={yearListLoading}

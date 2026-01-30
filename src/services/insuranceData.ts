@@ -213,14 +213,13 @@ export async function getExportInfo(params: InsuranceDataListParams) {
   });
 }
 
-// 导出参保数据
+// 导出参保数据匹配结果（异步任务）
 export async function exportInsuranceData(params: InsuranceDataListParams) {
-  return request('/api/insurance-data/export', {
+  return request<ApiResponse<{ uuid: string }>>('/api/insurance-data/export', {
     method: 'GET',
     params,
-    responseType: 'blob',
   });
-} 
+}
 
 // 验证保险数据文件
 export async function validateInsuranceDataFile(data: FormData) {
@@ -263,7 +262,7 @@ export async function importLevelMatch(data: FormData) {
     data,
     timeout: 300000, // 5分钟超时
   });
-} 
+}
 
 
 // 验证认定区数据
