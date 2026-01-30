@@ -3,11 +3,12 @@ import { RuntimeConfig } from '@umijs/max';
 import { message, Popconfirm, Modal } from 'antd';
 import VConsole from 'vconsole';
 import { getConfig } from './config';
-
-// 在开发环境下初始化VConsole
-if (process.env.NODE_ENV === 'development') {
-  new VConsole();
-}
+import RightContent from '@/components/RightContent';
+import TaskFloat from '@/components/TaskFloat';
+// VConsole 已关闭
+// if (process.env.NODE_ENV === 'development') {
+//   new VConsole();
+// }
 
 // 获取当前环境配置
 const config = getConfig();
@@ -175,68 +176,14 @@ export const layout = ({ initialState }: { initialState: any }) => {
       menuFooterRender: () => ({ mode: 'horizontal' }),
       suppressSiderWhenMenuEmpty: true,
     },
-    // 自定义右侧内容，显示用户信息（通过CSS移动到左侧）
+    // 自定义右侧内容，显示任务中心和用户信息
     rightContentRender: () => {
       if (!initialState?.currentUser) return null;
 
-      // 使用 React.createElement 创建元素
       const React = require('react');
-
-      const handleLogout = () => {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-      };
-
-      return React.createElement('div', {
-        style: {
-        }
-      },
-        React.createElement(Popconfirm, {
-          title: '确定要退出登录吗？',
-          description: '退出后需要重新登录才能访问系统',
-          onConfirm: handleLogout,
-          okText: '确定',
-          cancelText: '取消',
-          placement: 'bottomRight'
-        },
-          React.createElement('div', {
-            style: {
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              transition: 'background-color 0.3s',
-            },
-            onMouseEnter: (e: any) => {
-              e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.06)';
-            },
-            onMouseLeave: (e: any) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            },
-          }, [
-            React.createElement('img', {
-              key: 'avatar',
-              src: 'https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png',
-              alt: 'avatar',
-              style: {
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                marginRight: '8px',
-              }
-            }),
-            React.createElement('span', {
-              key: 'username',
-              style: {
-                color: 'rgba(0, 0, 0, 0.88)',
-                fontSize: '14px',
-                fontWeight: 500,
-              }
-            }, initialState.currentUser.nickname || initialState.currentUser.username)
-          ])
-        )
-      );
+      return React.createElement(RightContent, {
+        currentUser: initialState.currentUser
+      });
     },
     logout: () => {
       Modal.confirm({
@@ -254,6 +201,18 @@ export const layout = ({ initialState }: { initialState: any }) => {
     onMenuHeaderClick: () => {
       // 点击logo时刷新菜单
       window.location.reload();
+    },
+    // 在页面内容外层添加任务浮层
+    childrenRender: (children: any) => {
+      const React = require('react');
+      // 只在已登录时显示浮层
+      if (!initialState?.currentUser) return children;
+      return React.createElement(
+        React.Fragment,
+        null,
+        children,
+        React.createElement(TaskFloat)
+      );
     },
   };
 };

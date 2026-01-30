@@ -1,0 +1,31 @@
+/* 可拖动气泡按钮 */
+.task-float-bubble {
+    position: fixed;
+    z-index: 1000;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none;
+
+    &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px rgba(24, 144, 255, 0.5);
+    }
+
+    &.dragging {
+        cursor: grabbing;
+        transform: scale(1.05);
+    }
+}
+
+.task-float-icon {
+    font-size: 22px;
+    color: #fff;
+}

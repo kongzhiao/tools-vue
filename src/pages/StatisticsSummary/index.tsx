@@ -286,7 +286,7 @@ const StatisticsSummary: React.FC = () => {
     }
   };
 
-  // 导出明细统计
+  // 导出明细统计（异步任务）
   const handleExportDetailStatistics = async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请选择要导出的项目');
@@ -298,25 +298,23 @@ const StatisticsSummary: React.FC = () => {
       const response = await exportDetailStatistics({ project_ids: projectIds });
 
       if (response.code === 200) {
-        // 创建下载链接
-        const blob = new Blob([Uint8Array.from(atob(response.data.content), c => c.charCodeAt(0))], {
-          type: response.data.content_type
-        });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = response.data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        message.success('明细统计导出成功');
+        // 后端返回任务 uuid，提示用户
+        message.success('导出任务已提交');
+        // 触发全局事件打开任务中心
+        window.dispatchEvent(new CustomEvent('openTaskCenter'));
       } else {
-        message.error(response.message || '导出失败');
+        // 显示后端返回的错误信息
+        message.error(response.message || response.msg || '导出失败');
       }
-    } catch (error) {
-      message.error('导出失败');
+    } catch (error: any) {
+      // 处理错误响应
+      const errorMsg = error?.response?.data?.message
+        || error?.response?.data?.msg
+        || error?.data?.message
+        || error?.data?.msg
+        || error?.message
+        || '导出失败';
+      message.warning(errorMsg);
     }
   };
 
@@ -681,14 +679,22 @@ const StatisticsSummary: React.FC = () => {
               </Button>
             )}
             {access.canExportStatisticsSummary && (
-              <Button
-                type={selectedRowKeys.length > 0 ? "primary" : "default"}
-                icon={<UploadOutlined />}
-                onClick={handleExportDetailStatistics}
+              <Popconfirm
+                title="确认导出"
+                description={`确定要导出选中的 ${selectedRowKeys.length} 个项目的明细数据吗？`}
+                onConfirm={handleExportDetailStatistics}
+                okText="确定"
+                cancelText="取消"
                 disabled={selectedRowKeys.length === 0}
               >
-                导出明细 {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
-              </Button>
+                <Button
+                  type={selectedRowKeys.length > 0 ? "primary" : "default"}
+                  icon={<UploadOutlined />}
+                  disabled={selectedRowKeys.length === 0}
+                >
+                  导出明细 {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                </Button>
+              </Popconfirm>
             )}
             {selectedRowKeys.length > 0 && access.canBatchDeleteStatisticsSummary && (
               <Popconfirm
