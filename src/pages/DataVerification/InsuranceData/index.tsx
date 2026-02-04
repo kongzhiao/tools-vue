@@ -131,7 +131,7 @@ const InsuranceDataPage: React.FC = () => {
   const [importsTreetTowMatchModalVisible, setImportsTreetTowMatchModalVisible] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<InsuranceData>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number | undefined>(2025);
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(new Date().getFullYear());
   const [currentYear, setCurrentYear] = useState<InsuranceYear>();
   const [importModalVisible, setImportModalVisible] = useState(false);
 

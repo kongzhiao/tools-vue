@@ -109,6 +109,9 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
         const canDownload = record.status === 'completed' && record.file_url;
         const percent = record.progress || 0;
 
+        // 进度显示：未到100%显示1位小数，100%显示整数
+        const percentText = percent >= 100 ? '100%' : `${percent.toFixed(1)}%`;
+
         // 进度条颜色
         const progressColor = record.status === 'failed' ? '#ff4d4f'
             : record.status === 'completed' ? '#52c41a'
@@ -127,9 +130,9 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
                             className="progress-inner"
                             style={{ width: `${percent}%`, backgroundColor: progressColor }}
                         >
-                            {percent >= 20 && <span className="progress-text">{percent.toFixed(0)}%</span>}
+                            {percent >= 20 && <span className="progress-text">{percentText}</span>}
                         </div>
-                        {percent < 20 && <span className="progress-text-outer">{percent.toFixed(0)}%</span>}
+                        {percent < 20 && <span className="progress-text-outer">{percentText}</span>}
                     </div>
                 </div>
                 <div className="task-item-footer">
@@ -165,7 +168,7 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
                 </div>
             }
             placement="right"
-            width={520}
+            width={600}
             open={visible}
             onClose={() => setVisible(false)}
             closeIcon={<CloseOutlined />}

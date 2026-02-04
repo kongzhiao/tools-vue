@@ -62,6 +62,7 @@ const Records: React.FC = () => {
   const [visitTypes, setVisitTypes] = useState<string[]>([]);
   const [hospitals, setHospitals] = useState<string[]>([]);
   const [processingStatuses, setProcessingStatuses] = useState<string[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // 获取就诊记录列表
   const fetchRecords = async (page = 1, pageSize = 15, filters = {}) => {
@@ -72,7 +73,7 @@ const Records: React.FC = () => {
         page_size: pageSize,
         ...filters,
       });
-      
+
       if (response.code === 0) {
         setRecords(response.data.data);
         setPagination({
@@ -272,7 +273,7 @@ const Records: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // 转换日期格式
       const recordData = {
         ...values,
@@ -285,7 +286,7 @@ const Records: React.FC = () => {
         // 更新就诊记录
         const response = await medicalRecordAPI.updateMedicalRecord(editingRecord.id, recordData);
         if (response.code === 0) {
-        message.success('就诊记录更新成功');
+          message.success('就诊记录更新成功');
           setModalVisible(false);
           fetchRecords(pagination.current, pagination.pageSize);
         } else {
@@ -296,7 +297,7 @@ const Records: React.FC = () => {
         const response = await medicalRecordAPI.createMedicalRecord(recordData);
         if (response.code === 0) {
           message.success('就诊记录创建成功');
-      setModalVisible(false);
+          setModalVisible(false);
           fetchRecords(pagination.current, pagination.pageSize);
         } else {
           message.error(response.message || '创建失败');
@@ -310,7 +311,7 @@ const Records: React.FC = () => {
   const handleSearch = () => {
     const values = searchForm.getFieldsValue();
     const filters: Record<string, any> = {};
-    
+
     // 过滤空值
     Object.keys(values).forEach(key => {
       if (values[key] !== undefined && values[key] !== '') {
@@ -321,7 +322,7 @@ const Records: React.FC = () => {
         }
       }
     });
-    
+
     fetchRecords(1, pagination.pageSize, filters);
     setPagination(prev => ({ ...prev, current: 1 }));
   };
@@ -335,7 +336,7 @@ const Records: React.FC = () => {
   const handleTableChange = (pagination: any) => {
     const values = searchForm.getFieldsValue();
     const filters: Record<string, any> = {};
-    
+
     Object.keys(values).forEach(key => {
       if (values[key] !== undefined && values[key] !== '') {
         if (key === 'admission_date_start' || key === 'admission_date_end') {
@@ -345,8 +346,43 @@ const Records: React.FC = () => {
         }
       }
     });
-    
+
     fetchRecords(pagination.current, pagination.pageSize, filters);
+  };
+
+  // 导出就诊记录
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      // 获取当前搜索表单的筛选条件
+      const values = searchForm.getFieldsValue();
+      const filters: Record<string, any> = {};
+
+      // 过滤空值
+      Object.keys(values).forEach(key => {
+        if (values[key] !== undefined && values[key] !== '') {
+          if (key === 'admission_date_start' || key === 'admission_date_end') {
+            filters[key] = values[key] ? values[key].format('YYYY-MM-DD') : '';
+          } else {
+            filters[key] = values[key];
+          }
+        }
+      });
+
+      const response = await medicalRecordAPI.exportMedicalRecords(filters);
+      if (response.code === 0) {
+        message.success('导出任务已提交，请在任务中心查看进度');
+        // 触发自定义事件打开任务中心
+        window.dispatchEvent(new CustomEvent('openTaskCenter'));
+      } else {
+        message.error(response.message || '导出失败');
+      }
+    } catch (error) {
+      message.error('导出失败');
+      console.error('导出失败:', error);
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const getPatientName = (personId: number) => {
@@ -582,21 +618,21 @@ const Records: React.FC = () => {
               filterOption={(input, option) => {
                 if (!option?.children) return false;
                 const searchText = input.toLowerCase();
-                
+
                 // 获取患者数据用于搜索
                 const patient = patients.find(p => p.id === option?.value);
                 if (!patient) return false;
-                
+
                 // 可以按姓名或完整身份证号搜索
                 const nameMatch = patient.name.toLowerCase().includes(searchText);
                 const idCardMatch = patient.id_card?.toLowerCase().includes(searchText) || false;
-                
+
                 return nameMatch || idCardMatch;
               }}
             >
               {patients.map(patient => {
-                const idCardSuffix = patient.id_card && patient.id_card.length >= 6 
-                  ? patient.id_card.slice(-6) 
+                const idCardSuffix = patient.id_card && patient.id_card.length >= 6
+                  ? patient.id_card.slice(-6)
                   : patient.id_card || '';
                 return (
                   <Option key={patient.id} value={patient.id}>
@@ -628,8 +664,8 @@ const Records: React.FC = () => {
             >
               {processingStatuses.map(status => (
                 <Option key={status} value={status}>
-                  {status === 'unreimbursed' ? '未报销' : 
-                   status === 'reimbursed' ? '已报销' : '已退回'}
+                  {status === 'unreimbursed' ? '未报销' :
+                    status === 'reimbursed' ? '已报销' : '已退回'}
                 </Option>
               ))}
             </Select>
@@ -661,9 +697,9 @@ const Records: React.FC = () => {
               </Button>
             )}
             {access.canCreateMedicalRecords && (
-              <Button 
-                type="primary" 
-                icon={<ImportOutlined />} 
+              <Button
+                type="primary"
+                icon={<ImportOutlined />}
                 onClick={() => setImportModalVisible(true)}
                 style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               >
@@ -671,14 +707,30 @@ const Records: React.FC = () => {
               </Button>
             )}
             {access.canBatchDeleteMedicalRecords && selectedRowKeys.length > 0 && (
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 danger
-                icon={<DeleteOutlined />} 
+                icon={<DeleteOutlined />}
                 onClick={handleBatchDelete}
               >
                 批量删除 ({selectedRowKeys.length})
               </Button>
+            )}
+            {access.canExportMedicalRecords && (
+              <Popconfirm
+                title="导出确认"
+                description="确定要导出当前筛选条件下的就诊记录吗？"
+                onConfirm={handleExport}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button
+                  icon={<FileTextOutlined />}
+                  loading={exportLoading}
+                >
+                  导出就诊记录
+                </Button>
+              </Popconfirm>
             )}
             <Button icon={<ReloadOutlined />} onClick={() => fetchRecords()}>
               刷新
@@ -770,21 +822,21 @@ const Records: React.FC = () => {
                     if (!option?.children) return false;
                     const text = option.children.toString().toLowerCase();
                     const searchText = input.toLowerCase();
-                    
+
                     // 获取患者数据用于搜索
                     const patient = patients.find(p => p.id === option?.value);
                     if (!patient) return false;
-                    
+
                     // 可以按姓名或完整身份证号搜索
                     const nameMatch = patient.name.toLowerCase().includes(searchText);
                     const idCardMatch = patient.id_card?.toLowerCase().includes(searchText) || false;
-                    
+
                     return nameMatch || idCardMatch;
                   }}
                 >
                   {patients.map(patient => {
-                    const idCardSuffix = patient.id_card && patient.id_card.length >= 6 
-                      ? patient.id_card.slice(-6) 
+                    const idCardSuffix = patient.id_card && patient.id_card.length >= 6
+                      ? patient.id_card.slice(-6)
                       : patient.id_card || '';
                     return (
                       <Option key={patient.id} value={patient.id}>
@@ -828,8 +880,8 @@ const Records: React.FC = () => {
                 <Select placeholder="请选择处理状态">
                   {processingStatuses.map(status => (
                     <Option key={status} value={status}>
-                      {status === 'unreimbursed' ? '未报销' : 
-                       status === 'reimbursed' ? '已报销' : '已退回'}
+                      {status === 'unreimbursed' ? '未报销' :
+                        status === 'reimbursed' ? '已报销' : '已退回'}
                     </Option>
                   ))}
                 </Select>

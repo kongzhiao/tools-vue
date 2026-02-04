@@ -180,15 +180,15 @@ export const medicalRecordAPI = {
   }),
 
   // 批量删除就诊记录
-  batchDeleteMedicalRecords: (ids: number[]) => request<{ 
-    code: number; 
-    message: string; 
+  batchDeleteMedicalRecords: (ids: number[]) => request<{
+    code: number;
+    message: string;
     data: {
       deleted_medical_records: number[];
       deleted_reimbursements: number[];
       updated_reimbursements: number[];
       deleted_count: number;
-    } 
+    }
   }>('/api/medical-assistance/medical-records/batch-delete', {
     method: 'POST',
     data: { ids },
@@ -213,6 +213,12 @@ export const medicalRecordAPI = {
   batchUpdateStatus: (data: { ids: number[]; processing_status: string }) => request<{ code: number; message: string; data: { updated_count: number } }>('/api/medical-assistance/medical-records/batch-update-status', {
     method: 'POST',
     data,
+  }),
+
+  // 导出就诊记录
+  exportMedicalRecords: (filters?: Record<string, any>) => request<{ code: number; message: string; data: { uuid: string } }>('/api/medical-assistance/medical-records/export', {
+    method: 'GET',
+    params: filters,
   }),
 };
 
@@ -289,7 +295,7 @@ export const reimbursementAPI = {
   }),
 
   // 导出受理台账
-  exportLedger: (filters?: Record<string, any>) => request<{ code: number; message: string; data: { filename: string; content: string; content_type: string } }>('/api/medical-assistance/reimbursements/export-ledger', {
+  exportLedger: (filters?: Record<string, any>) => request<{ code: number; message: string; data: { uuid: string } }>('/api/medical-assistance/reimbursements/export-ledger', {
     method: 'GET',
     params: filters,
   }),
@@ -301,7 +307,7 @@ export const importAPI = {
   importExcel: (file: File) => {
     const formData = new FormData();
     formData.append('excel_file', file);
-    
+
     return request<{ code: number; message: string; data: any }>('/api/medical-assistance/import-excel', {
       method: 'POST',
       data: formData,

@@ -405,27 +405,9 @@ const Reimbursement: React.FC = () => {
 
       const response = await reimbursementAPI.exportLedger(filters);
       if (response.code === 0) {
-        // 解码base64内容
-        const binaryString = atob(response.data.content);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        // 创建下载链接
-        const blob = new Blob([bytes], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = response.data.filename || '受理台账.xlsx';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        message.success('受理台账导出成功');
+        message.success('导出任务已提交，请在任务中心查看进度');
+        // 触发自定义事件打开任务中心
+        window.dispatchEvent(new CustomEvent('openTaskCenter'));
       } else {
         message.error(response.message || '导出失败');
       }
@@ -887,13 +869,20 @@ const Reimbursement: React.FC = () => {
               </Button>
             )}
             {access.canExportReimbursementManagement && (
-              <Button
-                icon={<FileTextOutlined />}
-                onClick={handleExportLedger}
-                loading={exportLoading}
+              <Popconfirm
+                title="导出确认"
+                description="确定要导出当前筛选条件下的受理台账吗？"
+                onConfirm={handleExportLedger}
+                okText="确定"
+                cancelText="取消"
               >
-                导出受理台账
-              </Button>
+                <Button
+                  icon={<FileTextOutlined />}
+                  loading={exportLoading}
+                >
+                  导出受理台账
+                </Button>
+              </Popconfirm>
             )}
             <Button icon={<ReloadOutlined />} onClick={() => fetchReimbursements()}>
               刷新
