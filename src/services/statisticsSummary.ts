@@ -130,7 +130,7 @@ export async function exportPersonTimeStatistics(data: {
 export async function exportReimbursementStatistics(data: {
   project_ids: number[];
 }) {
-  return request('/api/statistics/export-reimbursement-statistics', { 
+  return request('/api/statistics/export-reimbursement-statistics', {
     method: 'POST',
     data,
   });
@@ -157,9 +157,10 @@ export async function exportDetailStatistics(data: {
 }
 
 // 清空项目数据
-export async function clearProjectData(id: number) {
+export async function clearProjectData(id: number, import_type?: string) {
   return request(`/api/statistics/projects/${id}/data`, {
     method: 'DELETE',
+    params: import_type ? { import_type } : {},
   });
 }
 
@@ -189,7 +190,7 @@ export async function importStatistics(data: {
   formData.append('project_id', data.project_id.toString());
   formData.append('import_type', data.import_type);
   formData.append('file', data.file);
-  
+
   return request('/api/statistics/import', {
     method: 'POST',
     data: formData,

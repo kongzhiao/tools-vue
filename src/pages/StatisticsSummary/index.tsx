@@ -79,6 +79,7 @@ const StatisticsSummary: React.FC = () => {
   const [tiltAssistanceModalVisible, setTiltAssistanceModalVisible] = useState(false);
   const [tiltAssistanceData, setTiltAssistanceData] = useState<any[]>([]);
   const [tiltAssistanceLoading, setTiltAssistanceLoading] = useState(false);
+  const [clearDataType, setClearDataType] = useState<string | undefined>(undefined); // 清空数据类型
 
   useEffect(() => {
     fetchData();
@@ -398,13 +399,22 @@ const StatisticsSummary: React.FC = () => {
       return;
     }
 
+    if (!clearDataType) {
+      message.error('请选择清空类型');
+      return;
+    }
+
     try {
-      await clearProjectData(projectId);
-      message.success('数据清空成功');
+      // 如果选择"全部"，则不传 import_type 参数
+      const importType = clearDataType === '全部' ? undefined : clearDataType;
+      await clearProjectData(projectId, importType);
+      message.success(`${clearDataType}数据清空成功`);
       // 刷新数据明细
       if (selectedProjectId === projectId) {
         fetchDetailData(projectId, detailCurrent, detailPageSize);
       }
+      // 重置清空类型
+      setClearDataType(undefined);
     } catch (error) {
       message.error('清空数据失败');
     }
@@ -877,21 +887,36 @@ const StatisticsSummary: React.FC = () => {
                 </Button>
               )}
               {access.canClearStatisticsSummary && (
-                <Popconfirm
-                  title="确定要清空该项目的所有数据吗？"
-                  description="清空后可以重新导入数据，但无法恢复已删除的数据"
-                  onConfirm={() => selectedProjectId && handleClearProjectData(selectedProjectId)}
-                  okText="确定"
-                  cancelText="取消"
-                >
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    disabled={!selectedProjectId}
+                <Space.Compact>
+                  <Select
+                    placeholder="清空类型"
+                    allowClear
+                    style={{ width: 100, textAlign: 'center' }}
+                    value={clearDataType}
+                    onChange={(value) => setClearDataType(value)}
                   >
-                    清空数据
-                  </Button>
-                </Popconfirm>
+                    <Select.Option value="区内明细" style={{ textAlign: 'center' }}>区内明细</Select.Option>
+                    <Select.Option value="跨区明细" style={{ textAlign: 'center' }}>跨区明细</Select.Option>
+                    <Select.Option value="手工明细" style={{ textAlign: 'center' }}>手工明细</Select.Option>
+                    <Select.Option value="全部" style={{ textAlign: 'center' }}>全部</Select.Option>
+                  </Select>
+                  <Popconfirm
+                    title={clearDataType ? `确定要清空该项目的${clearDataType}数据吗？` : '请先选择清空类型'}
+                    description="清空后可以重新导入数据，但无法恢复已删除的数据"
+                    onConfirm={() => selectedProjectId && handleClearProjectData(selectedProjectId)}
+                    okText="确定"
+                    cancelText="取消"
+                    disabled={!clearDataType}
+                  >
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      disabled={!selectedProjectId || !clearDataType}
+                    >
+                      清空数据
+                    </Button>
+                  </Popconfirm>
+                </Space.Compact>
               )}
             </Space>
           </div>
