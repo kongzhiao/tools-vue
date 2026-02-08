@@ -30,6 +30,8 @@ import {
   ImportOutlined,
   DeleteOutlined,
   ExclamationCircleOutlined,
+  UploadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -151,6 +153,18 @@ const Records: React.FC = () => {
     fetchHospitals();
     fetchProcessingStatuses();
   }, []);
+
+  // 监听任务状态变更事件，自动刷新数据
+  useEffect(() => {
+    const handleTaskStatusChanged = () => {
+      fetchRecords(pagination.current, pagination.pageSize);
+    };
+
+    window.addEventListener('taskStatusChanged', handleTaskStatusChanged);
+    return () => {
+      window.removeEventListener('taskStatusChanged', handleTaskStatusChanged);
+    };
+  }, [pagination.current, pagination.pageSize]);
 
   const handleAdd = () => {
     setEditingRecord(null);
@@ -698,10 +712,10 @@ const Records: React.FC = () => {
             )}
             {access.canCreateMedicalRecords && (
               <Button
-                type="primary"
-                icon={<ImportOutlined />}
+                // type="primary"
+                icon={<UploadOutlined />}
                 onClick={() => setImportModalVisible(true)}
-                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              // style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               >
                 导入数据
               </Button>
@@ -725,7 +739,7 @@ const Records: React.FC = () => {
                 cancelText="取消"
               >
                 <Button
-                  icon={<FileTextOutlined />}
+                  icon={<DownloadOutlined />}
                   loading={exportLoading}
                 >
                   导出就诊记录
@@ -757,9 +771,6 @@ const Records: React.FC = () => {
             current: pagination.current,
             pageSize: pagination.pageSize,
             total: pagination.total,
-            unreimbursed: pagination.unreimbursed,
-            reimbursed: pagination.reimbursed,
-            returned: pagination.returned,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>

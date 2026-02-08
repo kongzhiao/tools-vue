@@ -4,6 +4,7 @@ import { useAccess } from '@umijs/max';
 import { exportPersonTimeStatistics } from '@/services/statisticsSummary';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { UploadOutlined, DownloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
 interface PersonTimeStatisticsModalProps {
   visible: boolean;
@@ -546,6 +547,7 @@ const PersonTimeStatisticsModal: React.FC<PersonTimeStatisticsModalProps> = ({
       footer={[
         access.canExportStatisticsSummary && (
           <Button key="export" type="primary" onClick={handleExport}>
+            <DownloadOutlined />
             导出人次统计
           </Button>
         ),

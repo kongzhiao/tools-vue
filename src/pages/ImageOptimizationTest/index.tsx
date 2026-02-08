@@ -85,7 +85,7 @@ const ImageOptimizationTest: React.FC = () => {
         
         <div style={{ marginTop: '16px' }}>
           <Text type="secondary">
-            支持 JPG、PNG、GIF 格式，文件大小不超过 10MB
+            支持 JPG、PNG、GIF 格式，文件大小不超过 128MB
           </Text>
         </div>
       </Card>

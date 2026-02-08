@@ -68,9 +68,9 @@ const OcrPage: React.FC = () => {
       return false;
     }
 
-    const isLt10M = file.size / 1024 / 1024 < 10;
-    if (!isLt10M) {
-      message.error('图片大小不能超过10MB！');
+    const isLt128M = file.size / 1024 / 1024 < 128;
+    if (!isLt128M) {
+      message.error('图片大小不能超过128MB！');
       return false;
     }
 
@@ -472,7 +472,7 @@ const OcrPage: React.FC = () => {
                 </p>
                 <p className="ant-upload-text">点击或拖拽图片到此区域进行识别</p>
                 <p className="ant-upload-hint">
-                  支持 JPG、PNG、GIF 格式，文件大小不超过 10MB
+                  支持 JPG、PNG、GIF 格式，文件大小不超过 128MB
                 </p>
               </Dragger>
 
@@ -498,7 +498,7 @@ const OcrPage: React.FC = () => {
                   <ul>
                     <li>请确保图片清晰，文字可读</li>
                     <li>支持JPG、PNG、GIF格式</li>
-                    <li>文件大小不超过10MB</li>
+                    <li>文件大小不超过128MB</li>
                     <li>识别结果仅供参考，请人工核对</li>
                   </ul>
                 </div>

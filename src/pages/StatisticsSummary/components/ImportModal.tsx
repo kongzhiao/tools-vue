@@ -36,9 +36,9 @@ const ImportModal: React.FC<ImportModalProps> = ({
 
   // 导入类型选项及对应的模板文件映射
   const importTypes = [
-    { value: '区内明细', label: '区内明细', template: '/assets/templates/statistics/统计汇总-区内明细.xlsx' },
-    { value: '跨区明细', label: '跨区明细', template: '/assets/templates/statistics/统计汇总-跨区明细.xlsx' },
-    { value: '手工明细', label: '手工明细', template: '/assets/templates/statistics/统计汇总-手工明细.xlsx' },
+    { value: '区内明细', label: '区内明细', template: '/assets/templates/statistics/统计汇总-区内明细.csv' },
+    { value: '跨区明细', label: '跨区明细', template: '/assets/templates/statistics/统计汇总-跨区明细.csv' },
+    { value: '手工明细', label: '手工明细', template: '/assets/templates/statistics/统计汇总-手工明细.csv' },
   ];
 
   // 获取当前选中类型的模板路径
@@ -62,7 +62,11 @@ const ImportModal: React.FC<ImportModalProps> = ({
       });
 
       if (result.code === 200) {
-        message.success(`数据导入成功，共导入 ${result.data.imported_count} 条记录`);
+        message.success('导入任务已提交，请在任务中心查看进度');
+        // 触发全局事件打开任务中心并刷新计数
+        window.dispatchEvent(new CustomEvent('openTaskCenter'));
+        window.dispatchEvent(new CustomEvent('refreshTaskCount'));
+
         form.resetFields();
         setFileList([]);
         setSelectedImportType(undefined);
@@ -100,8 +104,21 @@ const ImportModal: React.FC<ImportModalProps> = ({
       title="导入数据"
       open={visible}
       onCancel={handleCancel}
-      footer={null}
-      width={560}
+      footer={[
+        <Button key="cancel" onClick={handleCancel}>
+          关闭
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={uploading}
+          disabled={fileList.length === 0}
+          onClick={() => form.submit()}
+        >
+          确认导入
+        </Button>
+      ]}
+      width={600}
     >
       <Form
         form={form}
@@ -124,7 +141,7 @@ const ImportModal: React.FC<ImportModalProps> = ({
 
         <Form.Item
           name="import_type"
-          label="导入类型"
+          label=""
           rules={[{ required: true, message: '请选择导入类型' }]}
         >
           <Select
@@ -140,50 +157,52 @@ const ImportModal: React.FC<ImportModalProps> = ({
         </Form.Item>
 
         {/* 模板下载提示 */}
-        {templateUrl && (
-          <Alert
-            message="模板下载"
-            description={
-              <div>
-                请先下载模板文件，按照模板格式填写数据后再上传。
+        <Alert
+          message="导入说明"
+          description={
+            <div>
+              <p>1. 请先选择导入类型并下载对应的模板文件</p>
+              <p>2. 仅支持 .csv 格式的文件</p>
+              <p>3. 文件大小不能超过 128MB</p>
+              {templateUrl && (
                 <div style={{ marginTop: 8 }}>
                   <Button
-                    type="link"
+                    type="primary"
                     icon={<DownloadOutlined />}
                     href={templateUrl}
                     download
-                    style={{ padding: 0 }}
+                    size="small"
                   >
                     下载 {selectedImportType} 模板
                   </Button>
                 </div>
-              </div>
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-        )}
+              )}
+            </div>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
 
         <Form.Item
-          label="上传文件"
+          label=""
           required
         >
-          <Upload
-            accept=".xlsx,.xls"
+          <Upload.Dragger
+            accept=".csv"
             beforeUpload={() => false}
             maxCount={1}
             fileList={fileList}
             onChange={({ fileList }) => setFileList(fileList)}
           >
-            <Button icon={<UploadOutlined />}>选择文件</Button>
-          </Upload>
-        </Form.Item>
-
-        <Form.Item style={{ marginTop: 16, textAlign: 'right', marginBottom: 0 }}>
-          <Button type="primary" htmlType="submit" loading={uploading}>
-            开始导入
-          </Button>
+            <p className="ant-upload-drag-icon">
+              <UploadOutlined />
+            </p>
+            <p className="ant-upload-text">点击或拖拽CSV文件到此区域上传</p>
+            <p className="ant-upload-hint">
+              仅支持 .csv 格式，文件大小不超过 128MB
+            </p>
+          </Upload.Dragger>
         </Form.Item>
       </Form>
     </Modal>

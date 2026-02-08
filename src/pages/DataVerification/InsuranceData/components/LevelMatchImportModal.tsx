@@ -3,9 +3,9 @@ import { Modal, Upload, Button, message, Alert, Space, Typography } from 'antd';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { UploadProps, UploadFile } from 'antd/es/upload/interface';
 import {
-   importLevelMatch, 
-   validateImportLevelMatch,  
-   type InsuranceYear,
+  importLevelMatch,
+  validateImportLevelMatch,
+  type InsuranceYear,
 } from '@/services/insuranceData';
 
 
@@ -13,10 +13,11 @@ interface ImportResult {
   code: number;
   message: string;
   data?: {
-    success_count: number;
-    fail_count: number;
-    total_rows: number;
-    errors: string[];
+    uuid?: string;
+    success_count?: number;
+    fail_count?: number;
+    total_rows?: number;
+    errors?: string[];
   };
 }
 
@@ -80,62 +81,67 @@ const LevelMatchImportModal: React.FC<LevelMatchImportModalProps> = ({
     console.log('=== handleImportYear 函数被调用 ===');
     console.log('importModalState:', importModalState);
     console.log('currentYear:', currentYear);
-    
+
     // 检查 currentYear 是否存在
     if (!currentYear) {
       console.log('currentYear 未定义，显示错误');
       message.error('请先选择年份');
       return;
     }
-    
+
     if (!importModalState.validated) {
       console.log('文件未验证，显示警告');
       message.warning('请先验证文件格式');
       return;
     }
-    
+
     // 检查文件是否存在
     if (importModalState.fileList.length === 0) {
       console.log('文件列表为空，显示错误');
       message.error('请先选择要导入的文件');
       return;
     }
-    
+
     const file = importModalState.fileList[0]?.originFileObj;
     if (!file) {
       console.log('文件对象不存在，显示错误');
       message.error('文件对象无效，请重新选择文件');
       return;
     }
-    
+
     console.log('开始设置导入状态...');
     setImportModalState(prev => ({ ...prev, importing: true }));
-    
+
     try {
       console.log('检查文件和年份...');
       console.log('文件:', file.name, '大小:', file.size);
       console.log('年份:', currentYear.year);
-      
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('year', currentYear.year.toString());
-      
+
       console.log('FormData 创建完成，准备调用导入...');
-      
+
       const response = await importLevelMatch(formData);
-      
+
       // 存储导入结果
       setImportModalState(prev => ({
         ...prev,
         importResult: response
       }));
-      
-      if (response.code === 0) {
-        message.success(`导入完成，成功${response.data.success_count}条，跳过${response.data.fail_count}条`);
+
+      if (response.code === 0 && response.data?.uuid) {
+        message.success('匹配任务已提交，请在任务中心查看进度');
+        window.dispatchEvent(new CustomEvent('openTaskCenter'));
+        onSuccess();
+        handleCancel();
+      } else if (response.code === 0) {
+        message.success(`导入完成`);
         // 立即刷新数据
         onSuccess();
       } else {
-        message.error(response.message || '匹配完成');
+        message.error(response.message || '导入失败');
       }
     } catch (error) {
       console.error('导入失败:', error);
@@ -149,10 +155,10 @@ const LevelMatchImportModal: React.FC<LevelMatchImportModalProps> = ({
 
   // 下载模板
   const downloadTemplate = () => {
-    const templateUrl = '/assets/templates/data-verification/数据核实-匹配档次数据.xlsx';
+    const templateUrl = '/assets/templates/data-verification/数据核实-匹配档次数据.csv';
     const link = document.createElement('a');
     link.href = templateUrl;
-    link.download = '数据核实-匹配档次数据.xlsx';
+    link.download = '数据核实-匹配档次数据.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -178,7 +184,7 @@ const LevelMatchImportModal: React.FC<LevelMatchImportModalProps> = ({
       if (importModalState.fileList.length === 0) {
         throw new Error('请先选择文件');
       }
-      
+
       const file = importModalState.fileList[0]?.originFileObj;
       if (!file) {
         throw new Error('文件对象无效');
@@ -187,7 +193,7 @@ const LevelMatchImportModal: React.FC<LevelMatchImportModalProps> = ({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('year', currentYear.year.toString());
-      
+
       const response = await validateImportLevelMatch(formData);
       if (response.code === 0) {
         setImportModalState(prev => ({
@@ -227,50 +233,70 @@ const LevelMatchImportModal: React.FC<LevelMatchImportModalProps> = ({
     <Modal
       title={`匹配${currentYear?.year || '未知'}年参保档次数据`}
       open={visible}
-      onCancel={() => {
-        onCancel();
-      }}
-      footer={null}
-      width={800}
+      onCancel={handleCancel}
+      footer={[
+        <Button
+          key="cancel"
+          onClick={handleCancel}
+          disabled={importModalState.importing}
+        >
+          {importModalState.importResult ? '关闭' : '取消'}
+        </Button>,
+        !importModalState.importResult && (
+          <Button
+            key="validate"
+            onClick={handleValidateFile}
+            loading={importModalState.validating}
+            disabled={importModalState.fileList.length === 0 || importModalState.importing}
+          >
+            验证文件
+          </Button>
+        ),
+        !importModalState.importResult && (
+          <Button
+            key="submit"
+            type="primary"
+            onClick={handleImportYear}
+            loading={importModalState.importing}
+            disabled={!importModalState.validated || importModalState.fileList.length === 0 || importModalState.importing}
+          >
+            {importModalState.importing ? '匹配中...' : '确认匹配'}
+          </Button>
+        )
+      ]}
+      width={600}
     >
-      <div style={{ padding: '20px 0' }}>
+      <div style={{ padding: '10px 0' }}>
         {/* 说明信息 */}
         <Alert
-          message="使用说明"
+          message="导入说明"
           description={
             <div>
-              <Paragraph style={{ marginBottom: 8 }}>
-                1. 请按照模板格式准备 Excel 文件，包含以下列：
-              </Paragraph>
-              <ul style={{ marginBottom: 16 }}>
-                <li><Text strong>身份证号</Text>：参保人员的身份证号码</li>
-                <li><Text strong>个人实缴金额</Text>：该人员的个人实际缴费金额</li>
-              </ul>
-              <Paragraph style={{ marginBottom: 8 }}>
-                2. 系统将根据身份证号匹配参保数据，并根据代缴类别和个人实缴金额自动匹配对应的参保档次
-              </Paragraph>
-              <Paragraph style={{ marginBottom: 8 }}>
-                3. 匹配成功的数据将自动更新档次和个人实缴金额，并将匹配状态设置为已匹配
-              </Paragraph>
+              <p>1. 请先下载模板文件，按照模板格式填写数据</p>
+              <p>2. 系统将根据身份证号自动匹配参保档次</p>
+              <p>3. 仅支持 .csv 格式，文件大小不超过 128MB</p>
+              <div style={{ marginTop: 8 }}>
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={downloadTemplate}
+                  disabled={importModalState.importing}
+                  size="small"
+                >
+                  下载导入模板
+                </Button>
+              </div>
             </div>
           }
           type="info"
           showIcon
-          style={{ marginBottom: 24 }}
+          style={{ marginBottom: 16 }}
         />
 
         {/* 操作区域 */}
         <div style={{ marginBottom: 16 }}>
-            <Button 
-              icon={<DownloadOutlined />} 
-              onClick={downloadTemplate}
-              disabled={importModalState.importing}
-            >
-              下载模板
-            </Button>
-            <Text type="secondary">请先下载模板，按照格式填写数据</Text>
           <Upload.Dragger
-            accept=".xlsx,.xls"
+            accept=".csv"
             maxCount={1}
             fileList={importModalState.fileList}
             onChange={handleUploadChange}
@@ -279,12 +305,11 @@ const LevelMatchImportModal: React.FC<LevelMatchImportModalProps> = ({
             <p className="ant-upload-drag-icon">
               <UploadOutlined />
             </p>
-            <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+            <p className="ant-upload-text">点击或拖拽CSV文件到此区域上传</p>
             <p className="ant-upload-hint">
-              支持单个.xls或.xlsx文件上传，文件大小不超过10MB
+              仅支持 .csv 格式，文件大小不超过 128MB
             </p>
           </Upload.Dragger>
-
         </div>
 
         {importModalState.validationMessage && (
@@ -308,44 +333,6 @@ const LevelMatchImportModal: React.FC<LevelMatchImportModalProps> = ({
             />
           </div>
         )}
-      </div>
-
-      <div style={{ marginTop: 16, textAlign: 'right' }}>
-        <Space>
-          {importModalState.importResult ? (
-            <Button
-              type="primary"
-              onClick={handleCancel}
-            >
-              关闭
-            </Button>
-          ) : (
-            <>
-              <Button
-                onClick={handleCancel}
-                disabled={importModalState.importing}
-              >
-                取消
-              </Button>
-              <Button
-                type="default"
-                onClick={handleValidateFile}
-                loading={importModalState.validating}
-                disabled={importModalState.fileList.length === 0 || importModalState.importing}
-              >
-                验证文件
-              </Button>
-              <Button
-                type="primary"
-                onClick={handleImportYear}
-                loading={importModalState.importing}
-                disabled={!importModalState.validated || importModalState.fileList.length === 0 || importModalState.importing}
-              >
-                {importModalState.importing ? '匹配中...' : '确认匹配'}
-              </Button>
-            </>
-          )}
-        </Space>
       </div>
     </Modal>
   );

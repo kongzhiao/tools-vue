@@ -233,7 +233,6 @@ const InsuranceDataPage: React.FC = () => {
     }
   };
 
-  // 初始化
   useEffect(() => {
     // 设置默认搜索参数
     if (!searchParams.year) {
@@ -244,6 +243,18 @@ const InsuranceDataPage: React.FC = () => {
     fetchOptions();
     fetchYearList(); // 添加这行
   }, [currentPage, pageSize]);
+
+  // 监听任务状态变化，自动刷新数据
+  useEffect(() => {
+    const handleTaskRefresh = () => {
+      console.log('收到任务完成通知，开始刷新参保数据');
+      fetchData();
+      fetchStatistics();
+      fetchYearList();
+    };
+    window.addEventListener('taskStatusChanged', handleTaskRefresh);
+    return () => window.removeEventListener('taskStatusChanged', handleTaskRefresh);
+  }, [filters.year]); // 依赖 filters.year 以确保刷新时使用正确的年份
 
   // 处理筛选条件变化
   const handleFilterChange = (key: keyof FilterState, value: string | number) => {

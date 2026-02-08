@@ -790,7 +790,7 @@ const ReimbursementPage: React.FC = () => {
           <div className={styles.uploadTips}>
             <p>支持多张图片批量识别</p>
             <p>支持 JPG、PNG、GIF 格式</p>
-            <p>文件大小不超过 10MB</p>
+            <p>文件大小不超过 128MB</p>
             <p>自动优化图片大小和分辨率</p>
             <p>识别结果将保存在本地</p>
             <p>也可以选择手动录入信息</p>

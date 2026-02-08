@@ -24,6 +24,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { request, useAccess } from '@umijs/max';
@@ -85,6 +86,20 @@ const StatisticsSummary: React.FC = () => {
     fetchData();
     fetchProjects();
   }, [current, pageSize]);
+
+  // 监听任务状态变化，自动刷新数据
+  useEffect(() => {
+    const handleTaskRefresh = () => {
+      console.log('收到任务完成通知，开始刷新统计汇总数据');
+      fetchData();
+      fetchProjects();
+      if (detailModalVisible && selectedProjectId) {
+        fetchDetailData(selectedProjectId, detailCurrent, detailPageSize);
+      }
+    };
+    window.addEventListener('taskStatusChanged', handleTaskRefresh);
+    return () => window.removeEventListener('taskStatusChanged', handleTaskRefresh);
+  }, [detailModalVisible, selectedProjectId, detailCurrent, detailPageSize]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -154,13 +169,13 @@ const StatisticsSummary: React.FC = () => {
     fetchData();
     // 如果数据明细弹窗是打开的，刷新数据明细
     if (detailModalVisible && selectedProjectId) {
-      console.log('刷新数据明细:', { selectedProjectId, detailCurrent, detailPageSize });
+      // console.log('刷新数据明细:', { selectedProjectId, detailCurrent, detailPageSize });
       fetchDetailData(selectedProjectId, detailCurrent, detailPageSize);
     } else {
-      console.log('数据明细弹窗状态:', { detailModalVisible, selectedProjectId });
+      // console.log('数据明细弹窗状态:', { detailModalVisible, selectedProjectId });
     }
     // 确保 selectedProjectId 不被重置，保持按钮可用
-    message.success('数据导入成功');
+    // message.success('数据导入成功');
   };
 
   const handleProjectSubmit = async (values: { code: string; dec: string }) => {
@@ -425,7 +440,7 @@ const StatisticsSummary: React.FC = () => {
       title: '项目ID',
       dataIndex: 'project_id',
       key: 'project_id',
-      width: 120,
+      width: 80,
     },
     {
       title: '数据类型',
@@ -451,53 +466,53 @@ const StatisticsSummary: React.FC = () => {
       title: '姓名',
       dataIndex: 'name',
       key: 'name',
-      width: 100,
+      width: 80,
     },
     {
       title: '证件号码',
       dataIndex: 'id_number',
       key: 'id_number',
-      width: 150,
+      width: 170,
     },
     {
       title: '医保分类',
       dataIndex: 'medical_category',
       key: 'medical_category',
-      width: 100,
+      width: 130,
     },
     {
       title: '费用总额',
       dataIndex: 'total_cost',
       key: 'total_cost',
-      width: 120,
+      width: 100,
       render: (text: any) => formatAmount(text),
     },
     {
       title: '符合医保报销金额',
       dataIndex: 'eligible_reimbursement',
       key: 'eligible_reimbursement',
-      width: 150,
+      width: 130,
       render: (text: any) => formatAmount(text),
     },
     {
       title: '基本医疗保险报销金额',
       dataIndex: 'basic_medical_reimbursement',
       key: 'basic_medical_reimbursement',
-      width: 180,
+      width: 160,
       render: (text: any) => formatAmount(text),
     },
     {
       title: '大病报销金额',
       dataIndex: 'serious_illness_reimbursement',
       key: 'serious_illness_reimbursement',
-      width: 130,
+      width: 120,
       render: (text: any) => formatAmount(text),
     },
     {
       title: '大额报销金额',
       dataIndex: 'large_amount_reimbursement',
       key: 'large_amount_reimbursement',
-      width: 130,
+      width: 120,
       render: (text: any) => formatAmount(text),
     },
     {
@@ -518,57 +533,57 @@ const StatisticsSummary: React.FC = () => {
       title: '代缴类别',
       dataIndex: 'payment_category',
       key: 'payment_category',
-      width: 100,
+      width: 130,
     },
     {
       title: '代缴金额',
       dataIndex: 'payment_amount',
       key: 'payment_amount',
-      width: 120,
+      width: 100,
       render: (text: any) => formatAmount(text),
     },
     {
       title: '代缴日期',
       dataIndex: 'payment_date',
       key: 'payment_date',
-      width: 120,
+      width: 110,
     },
     {
       title: '档次',
       dataIndex: 'level',
       key: 'level',
-      width: 80,
+      width: 70,
     },
     {
       title: '个人支付',
       dataIndex: 'personal_amount',
       key: 'personal_amount',
-      width: 120,
+      width: 100,
       render: (text: any) => formatAmount(text),
     },
     {
       title: '医疗救助类别',
       dataIndex: 'medical_assistance_category',
       key: 'medical_assistance_category',
-      width: 120,
+      width: 140,
     },
     {
       title: '备注',
       dataIndex: 'remark',
       key: 'remark',
-      width: 150,
+      width: 200,
     },
     {
       title: '导入批次',
       dataIndex: 'import_batch',
       key: 'import_batch',
-      width: 150,
+      width: 120,
     },
     {
       title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
-      width: 150,
+      width: 160,
       render: (text: string) => text ? new Date(text).toLocaleString() : '-',
     },
   ];
@@ -699,7 +714,7 @@ const StatisticsSummary: React.FC = () => {
               >
                 <Button
                   type={selectedRowKeys.length > 0 ? "primary" : "default"}
-                  icon={<UploadOutlined />}
+                  icon={<DownloadOutlined />}
                   disabled={selectedRowKeys.length === 0}
                 >
                   导出明细 {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
@@ -878,12 +893,11 @@ const StatisticsSummary: React.FC = () => {
             <Space>
               {access.canImportStatisticsSummary && (
                 <Button
-                  type="primary"
                   icon={<UploadOutlined />}
                   onClick={() => selectedProjectId && handleProjectImport(selectedProjectId)}
                   disabled={!selectedProjectId}
                 >
-                  导入数据
+                  导入
                 </Button>
               )}
               {access.canClearStatisticsSummary && (
@@ -936,7 +950,7 @@ const StatisticsSummary: React.FC = () => {
                 `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
             }}
             onChange={handleDetailTableChange}
-            scroll={{ x: 2000 }}
+            scroll={{ x: 2600 }}
             size="small"
           />
         </Modal>

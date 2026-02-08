@@ -217,6 +217,27 @@ export const layout = ({ initialState }: { initialState: any }) => {
   };
 };
 
+// 全局拦截标识，防止重复弹窗
+let isRedirecting = false;
+
+// 统一处理登录失效
+const handleUnauthenticated = (errorMessage: string = '登录已失效，请重新登录') => {
+  if (isRedirecting) return;
+  isRedirecting = true;
+
+  Modal.error({
+    title: '登录失效',
+    content: errorMessage,
+    okText: '重新登录',
+    onOk: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('umi_initial_state');
+      sessionStorage.clear();
+      window.location.href = '/login';
+    },
+  });
+};
+
 // 请求配置
 export const request = {
   timeout: config.apiTimeout || 300000, // 使用配置的超时时间，默认5分钟
@@ -224,13 +245,15 @@ export const request = {
   errorConfig: {
     errorHandler: (error: any) => {
       console.error('请求错误:', error);
-      // 检查是否是401错误
-      if (error.response?.status === 401 || error.data?.code === 401) {
-        // 清除token并跳转到登录页面
-        localStorage.removeItem('token');
-        localStorage.removeItem('umi_initial_state');
-        sessionStorage.clear();
-        window.location.href = '/login';
+      // 检查网络状态码或业务代码
+      const status = error.response?.status;
+      const bizCode = error.data?.code;
+      const msg = error.data?.msg || error.data?.message || '';
+
+      if (status === 401 || bizCode === 401) {
+        if (msg.toLowerCase().includes('token') || status === 401) {
+          handleUnauthenticated(msg || '登录失效，请重新登录');
+        }
       }
     },
     errorThrower: () => { },
@@ -246,14 +269,13 @@ export const request = {
   ],
   responseInterceptors: [
     (response: any) => {
-      // 检查响应状态
-      if (response.status === 401) {
-        // 清除token并跳转到登录页面
-        localStorage.removeItem('token');
-        localStorage.removeItem('umi_initial_state');
-        sessionStorage.clear();
-        window.location.href = '/login';
-        return response;
+      const { data, status } = response;
+      // 兼容业务代码返回 401 的场景
+      if (status === 401 || data?.code === 401) {
+        const msg = data?.msg || data?.message || '';
+        if (msg.toLowerCase().includes('token') || status === 401) {
+          handleUnauthenticated(msg || '登录失效，请重新登录');
+        }
       }
       return response;
     },

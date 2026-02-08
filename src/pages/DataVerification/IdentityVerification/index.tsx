@@ -22,7 +22,7 @@ import {
 import { useAccess } from '@umijs/max';
 import {
   UploadOutlined,
-  FileExcelOutlined,
+  FileTextOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   LoadingOutlined,
@@ -48,7 +48,7 @@ interface VerificationResult {
 const IdentityVerificationPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const access = useAccess();
-  
+
   // 状态管理
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [years, setYears] = useState<number[]>([]);
@@ -104,15 +104,14 @@ const IdentityVerificationPage: React.FC = () => {
     name: 'file',
     multiple: false,
     beforeUpload: (file) => {
-      const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                     file.type === 'application/vnd.ms-excel';
-      if (!isExcel) {
-        messageApi.error('只能上传Excel文件！');
+      const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv');
+      if (!isCsv) {
+        messageApi.error('只能上传CSV文件！');
         return Upload.LIST_IGNORE;
       }
-      const isLt10M = file.size / 1024 / 1024 < 10;
-      if (!isLt10M) {
-        messageApi.error('文件大小不能超过10MB！');
+      const isLt128M = file.size / 1024 / 1024 < 128;
+      if (!isLt128M) {
+        messageApi.error('文件大小不能超过128MB！');
         return Upload.LIST_IGNORE;
       }
       return false; // 阻止自动上传
@@ -125,7 +124,7 @@ const IdentityVerificationPage: React.FC = () => {
   // 开始验证
   const handleStartVerification = async () => {
     if (fileList.length === 0) {
-      messageApi.error('请先选择要验证的Excel文件');
+      messageApi.error('请先选择要验证的CSV文件');
       return;
     }
 
@@ -137,9 +136,9 @@ const IdentityVerificationPage: React.FC = () => {
       // 调试信息
       console.log('fileList:', fileList);
       console.log('originFileObj:', fileList[0]?.originFileObj);
-      
+
       if (!fileList[0]?.originFileObj) {
-        messageApi.error('请选择要验证的Excel文件');
+        messageApi.error('请选择要验证的CSV文件');
         return;
       }
 
@@ -184,10 +183,10 @@ const IdentityVerificationPage: React.FC = () => {
 
   // 下载模板
   const handleDownloadTemplate = () => {
-    const templateUrl = '/assets/templates/data-verification/数据核实-匹配身份和认定区数据.xlsx';
+    const templateUrl = '/assets/templates/data-verification/数据核实-匹配身份和认定区数据.csv';
     const link = document.createElement('a');
     link.href = templateUrl;
-    link.download = '数据核实-匹配身份和认定区数据.xlsx';
+    link.download = '数据核实-匹配身份和认定区数据.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -250,7 +249,7 @@ const IdentityVerificationPage: React.FC = () => {
   const steps = [
     {
       title: '选择文件',
-      description: '上传Excel文件',
+      description: '上传CSV文件',
     },
     {
       title: '验证中',
@@ -326,24 +325,24 @@ const IdentityVerificationPage: React.FC = () => {
         {/* 步骤内容 */}
         {currentStep === 0 && (
           <Card>
-            <Title level={4}>第一步：选择要验证的Excel文件</Title>
+            <Title level={4}>第一步：选择要验证的CSV文件</Title>
             <Text type="secondary">
-              请上传包含"身份证"和"资助参保身份"列的Excel文件
+              请上传包含"身份证"和"资助参保身份"列的CSV文件
             </Text>
-            
+
             <div style={{ marginTop: 24 }}>
-              <Dragger 
-                {...uploadProps} 
+              <Dragger
+                {...uploadProps}
                 style={{ height: 300 }}
                 fileList={fileList}
                 onChange={({ fileList }) => setFileList(fileList)}
               >
                 <p className="ant-upload-drag-icon">
-                  <FileExcelOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                  <FileTextOutlined style={{ fontSize: 48, color: '#1890ff' }} />
                 </p>
-                <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+                <p className="ant-upload-text">点击或拖拽CSV文件到此区域上传</p>
                 <p className="ant-upload-hint">
-                  支持 .xlsx 和 .xls 格式，文件大小不超过 10MB
+                  仅支持 .csv 格式，文件大小不超过 128MB
                 </p>
               </Dragger>
             </div>
@@ -355,7 +354,7 @@ const IdentityVerificationPage: React.FC = () => {
                     type="default"
                     size="large"
                     onClick={handleDownloadTemplate}
-                    icon={<FileExcelOutlined />}
+                    icon={<FileTextOutlined />}
                   >
                     下载模板
                   </Button>
@@ -396,7 +395,7 @@ const IdentityVerificationPage: React.FC = () => {
         {currentStep === 2 && (
           <Card>
             <Title level={4}>第三步：验证结果</Title>
-            
+
             {/* 验证结果统计 */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
               <Col span={6}>

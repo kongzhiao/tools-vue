@@ -62,6 +62,15 @@ export interface PaginatedResponse<T> {
   page_size: number;
 }
 
+// 专门针对就诊记录的分页响应，包含统计信息
+export interface MedicalRecordPaginatedResponse extends PaginatedResponse<MedicalRecord> {
+  statics: {
+    unreimbursed: number;
+    reimbursed: number;
+    returned: number;
+  };
+}
+
 // 统计信息接口
 export interface ReimbursementStatistics {
   total_count: number;
@@ -146,7 +155,7 @@ export const medicalRecordAPI = {
     processing_status?: string;
     admission_date_start?: string;
     admission_date_end?: string;
-  }) => request<{ code: number; message: string; data: PaginatedResponse<MedicalRecord> }>('/api/medical-assistance/medical-records', {
+  }) => request<{ code: number; message: string; data: MedicalRecordPaginatedResponse }>('/api/medical-assistance/medical-records', {
     method: 'GET',
     params,
   }),

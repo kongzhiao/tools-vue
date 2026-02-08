@@ -28,7 +28,7 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import { request, useAccess } from '@umijs/max';
-import { getConfig } from '../../config';
+import { getConfig } from '@/config';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
 
@@ -65,6 +65,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
   const [amountOption, setAmountOption] = useState<'keep' | 'zero'>('zero');
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importMode, setImportMode] = useState<'overwrite' | 'append'>('append');
+  const [importYear, setImportYear] = useState<number>(new Date().getFullYear()); // 默认当前年份
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -131,7 +132,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await request('/api/insurance-level-configs', {
-        params: { 
+        params: {
           year: selectedYear,
           page_size: 1000, // 获取所有数据，不分页
         },
@@ -160,10 +161,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
   // 下载模板
   const handleDownloadTemplate = () => {
-    const templateUrl = '/assets/templates/business-config/业务配置-参保档次配置.xls';
+    const templateUrl = '/assets/templates/business-config/业务配置-参保档次配置.csv';
     const link = document.createElement('a');
     link.href = templateUrl;
-    link.download = '业务配置-参保档次配置.xls';
+    link.download = '业务配置-参保档次配置.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -171,15 +172,14 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
   // 文件上传前验证
   const beforeUpload = (file: RcFile) => {
-    const isExcel = file.type === 'application/vnd.ms-excel' || 
-                    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    if (!isExcel) {
-      message.error('只能上传Excel文件！');
+    const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv');
+    if (!isCsv) {
+      message.error('只能上传CSV文件！');
       return false;
     }
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      message.error('文件大小不能超过10MB！');
+    const isLt128M = file.size / 1024 / 1024 < 128;
+    if (!isLt128M) {
+      message.error('文件大小不能超过128MB！');
       return false;
     }
     return true;
@@ -194,8 +194,8 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
     const formData = new FormData();
     formData.append('file', fileList[0] as any);
-    formData.append('mode', importMode);
-    formData.append('year', selectedYear.toString());
+    formData.append('mode', 'overwrite'); // 始终全量导入
+    formData.append('year', importYear.toString());
 
     setUploading(true);
     try {
@@ -203,9 +203,26 @@ const InsuranceLevelConfigPage: React.FC = () => {
         method: 'POST',
         data: formData,
       });
-      
+
       if (response.code === 0) {
-        message.success('导入成功');
+        const { imported = 0, skipped = 0, error_count = 0, errors = [] } = response.data || {};
+        if (error_count > 0) {
+          Modal.warning({
+            title: '导入完成（部分失败）',
+            content: (
+              <div>
+                <p>成功 {imported} 条，跳过 {skipped} 条，失败 {error_count} 条</p>
+                {errors.length > 0 && (
+                  <ul style={{ maxHeight: 200, overflow: 'auto', paddingLeft: 20 }}>
+                    {errors.map((err: string, i: number) => <li key={i}>{err}</li>)}
+                  </ul>
+                )}
+              </div>
+            ),
+          });
+        } else {
+          message.success(`导入成功：${imported} 条，跳过 ${skipped} 条`);
+        }
         setImportModalVisible(false);
         setFileList([]);
         setValidationResult(null);
@@ -221,6 +238,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
     }
   };
 
+
   // 处理文件验证
   const handleFileValidation = async (file: UploadFile) => {
     const formData = new FormData();
@@ -231,7 +249,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
         method: 'POST',
         data: formData,
       });
-      
+
       if (response.code === 0) {
         setValidationResult({
           valid: true,
@@ -260,13 +278,18 @@ const InsuranceLevelConfigPage: React.FC = () => {
     beforeUpload: (file) => {
       if (beforeUpload(file)) {
         setFileList([file]);
-        handleFileValidation(file);
+        // 移除验证调用，直接准备导入（后端使用模糊匹配，不需要严格表头验证）
+        setValidationResult({
+          valid: true,
+          message: '文件已选择，点击确认导入',
+        });
       }
       return false;
     },
     fileList,
     maxCount: 1,
   };
+
 
   useEffect(() => {
     fetchYears();
@@ -372,10 +395,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
         // 计算当前代缴类别的行数
         const currentCategory = text;
         const categoryCount = data.filter(item => item.payment_category === currentCategory).length;
-        
+
         // 找到当前代缴类别在数据中的第一个索引
         const firstIndex = data.findIndex(item => item.payment_category === currentCategory);
-        
+
         // 如果是当前代缴类别的第一行，则显示文本并设置rowSpan
         if (index === firstIndex) {
           return {
@@ -392,7 +415,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
             },
           };
         }
-        
+
         // 其他行返回空，不显示
         return {
           children: null,
@@ -489,10 +512,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
             cancelText="取消"
             disabled={!access.canDeleteInsuranceLevelConfig}
           >
-            <Button 
-              type="link" 
-              size="small" 
-              danger 
+            <Button
+              type="link"
+              size="small"
+              danger
               icon={<DeleteOutlined />}
               disabled={!access.canDeleteInsuranceLevelConfig}
             >
@@ -587,19 +610,19 @@ const InsuranceLevelConfigPage: React.FC = () => {
               onClick={() => setImportModalVisible(true)}
               disabled={!access.canCreateInsuranceLevelConfig}
             >
-              从Excel导入
+              导入
             </Button>
           </Col>
         </Row>
-        
+
         {/* 统计信息 */}
         {data.length > 0 && (
           <Row style={{ marginBottom: 16 }}>
             <Col>
-              <div style={{ 
-                background: '#f6ffed', 
-                border: '1px solid #b7eb8f', 
-                borderRadius: '6px', 
+              <div style={{
+                background: '#f6ffed',
+                border: '1px solid #b7eb8f',
+                borderRadius: '6px',
                 padding: '8px 16px',
                 fontSize: '14px'
               }}>
@@ -652,8 +675,8 @@ const InsuranceLevelConfigPage: React.FC = () => {
                 label="代缴类别"
                 rules={[{ required: true, message: '请选择或输入代缴类别' }]}
               >
-                <Select 
-                  placeholder="请选择或输入代缴类别" 
+                <Select
+                  placeholder="请选择或输入代缴类别"
                   showSearch
                   allowClear
                   mode="tags"
@@ -671,7 +694,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
                 label="档次"
                 rules={[{ required: true, message: '请选择或输入档次' }]}
               >
-                <Select 
+                <Select
                   placeholder="请选择或输入档次"
                   showSearch
                   allowClear
@@ -732,8 +755,8 @@ const InsuranceLevelConfigPage: React.FC = () => {
           </Form.Item>
           <Form.Item>
             <Space>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 htmlType="submit"
                 disabled={editingRecord ? !access.canUpdateInsuranceLevelConfig : !access.canCreateInsuranceLevelConfig}
               >
@@ -802,24 +825,32 @@ const InsuranceLevelConfigPage: React.FC = () => {
           columns={[
             { title: '代缴类别', dataIndex: 'payment_category', key: 'payment_category' },
             { title: '档次', dataIndex: 'level', key: 'level' },
-            { title: '原资助金额', dataIndex: 'subsidy_amount', key: 'subsidy_amount', render: (amount: any) => {
+            {
+              title: '原资助金额', dataIndex: 'subsidy_amount', key: 'subsidy_amount', render: (amount: any) => {
                 const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
                 return `¥${numAmount.toFixed(2)}`;
-              } },
-            { title: '原个人金额', dataIndex: 'personal_amount', key: 'personal_amount', render: (amount: any) => {
+              }
+            },
+            {
+              title: '原个人金额', dataIndex: 'personal_amount', key: 'personal_amount', render: (amount: any) => {
                 const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
                 return `¥${numAmount.toFixed(2)}`;
-              } },
-            { title: '将创建资助金额', key: 'new_subsidy_amount', render: (record: any) => {
+              }
+            },
+            {
+              title: '将创建资助金额', key: 'new_subsidy_amount', render: (record: any) => {
                 const numAmount = typeof record.subsidy_amount === 'number' ? record.subsidy_amount : parseFloat(record.subsidy_amount) || 0;
                 const newAmount = amountOption === 'zero' ? 0 : numAmount;
                 return <span style={{ color: amountOption === 'zero' ? '#ff4d4f' : '#52c41a' }}>¥{newAmount.toFixed(2)}</span>;
-              } },
-            { title: '将创建个人金额', key: 'new_personal_amount', render: (record: any) => {
+              }
+            },
+            {
+              title: '将创建个人金额', key: 'new_personal_amount', render: (record: any) => {
                 const numAmount = typeof record.personal_amount === 'number' ? record.personal_amount : parseFloat(record.personal_amount) || 0;
                 const newAmount = amountOption === 'zero' ? 0 : numAmount;
                 return <span style={{ color: amountOption === 'zero' ? '#ff4d4f' : '#52c41a' }}>¥{newAmount.toFixed(2)}</span>;
-              } },
+              }
+            },
           ]}
           dataSource={templateData}
           rowKey="id"
@@ -829,8 +860,8 @@ const InsuranceLevelConfigPage: React.FC = () => {
         <div style={{ marginTop: 16, textAlign: 'right' }}>
           <Space>
             <Button onClick={() => setTemplateModalVisible(false)}>取消</Button>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               onClick={() => handleBatchCreate(templateYear)}
               disabled={!templateYear || templateYear < 2020 || templateYear > 2030 || !Number.isInteger(templateYear) || !access.canCreateInsuranceLevelConfig}
             >
@@ -842,14 +873,34 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
       {/* 导入模态框 */}
       <Modal
-        title="从Excel导入配置"
+        title="从CSV导入配置"
         open={importModalVisible}
         onCancel={() => {
           setImportModalVisible(false);
           setFileList([]);
           setValidationResult(null);
         }}
-        footer={null}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setImportModalVisible(false);
+              setFileList([]);
+              setValidationResult(null);
+            }}
+          >
+            关闭
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={handleUpload}
+            disabled={!validationResult?.valid || uploading || !access.canCreateInsuranceLevelConfig}
+            loading={uploading}
+          >
+            {uploading ? '导入中' : '确认导入'}
+          </Button>
+        ]}
         width={600}
       >
         <div style={{ marginBottom: 16 }}>
@@ -858,9 +909,18 @@ const InsuranceLevelConfigPage: React.FC = () => {
             description={
               <div>
                 <p>1. 请先下载模板文件，按照模板格式填写数据</p>
-                <p>2. 支持.xls或.xlsx格式的Excel文件</p>
-                <p>3. 文件大小不能超过10MB</p>
-                <p>4. 导入时请选择是全量覆盖还是增量添加</p>
+                <p>2. 仅支持 .csv 格式，文件大小不超过 128MB</p>
+                <p>3. 导入时请选择是全量覆盖还是增量添加</p>
+                <div style={{ marginTop: 8 }}>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={handleDownloadTemplate}
+                  >
+                    下载导入模板
+                  </Button>
+                </div>
               </div>
             }
             type="info"
@@ -869,26 +929,21 @@ const InsuranceLevelConfigPage: React.FC = () => {
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={handleDownloadTemplate}
-          >
-            下载导入模板
-          </Button>
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <Radio.Group
-            value={importMode}
-            onChange={(e) => setImportMode(e.target.value)}
-          >
-            <Radio.Button value="append">增量添加</Radio.Button>
-            <Radio.Button value="overwrite">全量覆盖</Radio.Button>
-          </Radio.Group>
-          <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
-            {importMode === 'overwrite' ? 
-              '全量覆盖：将删除所选年份的所有现有配置，并导入新配置' :
-              '增量添加：保留现有配置，仅添加新的配置项'}
+          <div style={{ marginBottom: 12 }}>
+            <span style={{ marginRight: 8 }}>导入目标年份：</span>
+            <Select
+              value={importYear}
+              onChange={(value) => setImportYear(value)}
+              style={{ width: 120 }}
+            >
+              {[...Array(10)].map((_, i) => {
+                const y = new Date().getFullYear() - 5 + i;
+                return <Option key={y} value={y}>{y}年</Option>;
+              })}
+            </Select>
+          </div>
+          <div style={{ fontSize: '12px', color: '#fa8c16' }}>
+            ⚠️ 导入将删除 {importYear} 年的所有现有配置，并导入新配置
           </div>
         </div>
 
@@ -896,9 +951,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
           <p className="ant-upload-drag-icon">
             <UploadOutlined />
           </p>
-          <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+          <p className="ant-upload-text">点击或拖拽CSV文件到此区域上传</p>
           <p className="ant-upload-hint">
-            支持单个.xls或.xlsx文件上传，文件大小不超过10MB
+            仅支持 .csv 格式，文件大小不超过 128MB
           </p>
         </Upload.Dragger>
 
@@ -934,28 +989,6 @@ const InsuranceLevelConfigPage: React.FC = () => {
             )}
           </div>
         )}
-
-        <div style={{ marginTop: 16, textAlign: 'right' }}>
-          <Space>
-            <Button
-              onClick={() => {
-                setImportModalVisible(false);
-                setFileList([]);
-                setValidationResult(null);
-              }}
-            >
-              取消
-            </Button>
-            <Button
-              type="primary"
-              onClick={handleUpload}
-              disabled={!validationResult?.valid || uploading || !access.canCreateInsuranceLevelConfig}
-              loading={uploading}
-            >
-              {uploading ? '导入中' : '确认导入'}
-            </Button>
-          </Space>
-        </div>
       </Modal>
     </PageContainer>
   );

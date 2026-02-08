@@ -31,6 +31,7 @@ import {
   ClockCircleOutlined,
   EyeOutlined,
   ReloadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -877,7 +878,7 @@ const Reimbursement: React.FC = () => {
                 cancelText="取消"
               >
                 <Button
-                  icon={<FileTextOutlined />}
+                  icon={<DownloadOutlined />}
                   loading={exportLoading}
                 >
                   导出受理台账

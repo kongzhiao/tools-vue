@@ -28,7 +28,7 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import { request, useAccess } from '@umijs/max';
-import { getConfig } from '../../config';
+import { getConfig } from '@/config';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
 
@@ -48,7 +48,7 @@ interface InsuranceLevelConfig {
   updated_at: string;
 }
 
-const InsuranceLevelConfigPage: React.FC = () => {
+const CategoryMoneyConfigPage: React.FC = () => {
   const access = useAccess();
   const [data, setData] = useState<InsuranceLevelConfig[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,12 +74,12 @@ const InsuranceLevelConfigPage: React.FC = () => {
   } | null>(null);
 
   // 权限检查
-  if (!access.canAccessInsuranceLevelConfig) {
+  if (!access.canAccessCategoryMoneyConfig) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
         <Alert
           message="无权限访问"
-          description="您没有权限访问参保档次配置功能，请联系管理员。"
+          description="您没有权限访问类别额度配置功能，请联系管理员。"
           type="warning"
           showIcon
         />
@@ -160,10 +160,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
   // 下载模板
   const handleDownloadTemplate = () => {
-    const templateUrl = '/assets/templates/business-config/业务配置-参保档次配置.xls';
+    const templateUrl = '/assets/templates/business-config/业务配置-参保档次配置.csv';
     const link = document.createElement('a');
     link.href = templateUrl;
-    link.download = '业务配置-参保档次配置.xls';
+    link.download = '业务配置-参保档次配置.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -171,15 +171,14 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
   // 文件上传前验证
   const beforeUpload = (file: RcFile) => {
-    const isExcel = file.type === 'application/vnd.ms-excel' ||
-      file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    if (!isExcel) {
-      message.error('只能上传Excel文件！');
+    const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv');
+    if (!isCsv) {
+      message.error('只能上传CSV文件！');
       return false;
     }
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      message.error('文件大小不能超过10MB！');
+    const isLt128M = file.size / 1024 / 1024 < 128;
+    if (!isLt128M) {
+      message.error('文件大小不能超过128MB！');
       return false;
     }
     return true;
@@ -587,7 +586,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
               onClick={() => setImportModalVisible(true)}
               disabled={!access.canCreateInsuranceLevelConfig}
             >
-              从Excel导入
+              导入
             </Button>
           </Col>
         </Row>
@@ -850,14 +849,34 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
       {/* 导入模态框 */}
       <Modal
-        title="从Excel导入配置"
+        title="从CSV导入配置"
         open={importModalVisible}
         onCancel={() => {
           setImportModalVisible(false);
           setFileList([]);
           setValidationResult(null);
         }}
-        footer={null}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setImportModalVisible(false);
+              setFileList([]);
+              setValidationResult(null);
+            }}
+          >
+            关闭
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={handleUpload}
+            disabled={!validationResult?.valid || uploading || !access.canCreateInsuranceLevelConfig}
+            loading={uploading}
+          >
+            {uploading ? '导入中' : '确认导入'}
+          </Button>
+        ]}
         width={600}
       >
         <div style={{ marginBottom: 16 }}>
@@ -866,23 +885,23 @@ const InsuranceLevelConfigPage: React.FC = () => {
             description={
               <div>
                 <p>1. 请先下载模板文件，按照模板格式填写数据</p>
-                <p>2. 支持.xls或.xlsx格式的Excel文件</p>
-                <p>3. 文件大小不能超过10MB</p>
-                <p>4. 导入时请选择是全量覆盖还是增量添加</p>
+                <p>2. 仅支持 .csv 格式，文件大小不超过 128MB</p>
+                <p>3. 导入时请选择是全量覆盖还是增量添加</p>
+                <div style={{ marginTop: 8 }}>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={handleDownloadTemplate}
+                  >
+                    下载导入模板
+                  </Button>
+                </div>
               </div>
             }
             type="info"
             showIcon
           />
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={handleDownloadTemplate}
-          >
-            下载导入模板
-          </Button>
         </div>
 
         <div style={{ marginBottom: 16 }}>
@@ -904,9 +923,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
           <p className="ant-upload-drag-icon">
             <UploadOutlined />
           </p>
-          <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+          <p className="ant-upload-text">点击或拖拽CSV文件到此区域上传</p>
           <p className="ant-upload-hint">
-            支持单个.xls或.xlsx文件上传，文件大小不超过10MB
+            仅支持.csv文件上传，文件大小不超过 128MB
           </p>
         </Upload.Dragger>
 
@@ -942,31 +961,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
             )}
           </div>
         )}
-
-        <div style={{ marginTop: 16, textAlign: 'right' }}>
-          <Space>
-            <Button
-              onClick={() => {
-                setImportModalVisible(false);
-                setFileList([]);
-                setValidationResult(null);
-              }}
-            >
-              取消
-            </Button>
-            <Button
-              type="primary"
-              onClick={handleUpload}
-              disabled={!validationResult?.valid || uploading || !access.canCreateInsuranceLevelConfig}
-              loading={uploading}
-            >
-              {uploading ? '导入中' : '确认导入'}
-            </Button>
-          </Space>
-        </div>
       </Modal>
     </PageContainer>
   );
 };
 
-export default InsuranceLevelConfigPage; 
+export default CategoryMoneyConfigPage; 

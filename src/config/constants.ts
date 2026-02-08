@@ -3,18 +3,18 @@ export const APP_CONFIG = {
   // 应用信息
   APP_NAME: '共享救助信息服务平台',
   APP_VERSION: '1.0.0',
-  
+
   // 分页配置
   DEFAULT_PAGE_SIZE: 20,
   PAGE_SIZE_OPTIONS: [10, 20, 50, 100],
-  
+
   // 缓存配置
   CACHE_EXPIRE_TIME: 5 * 60 * 1000, // 5分钟
-  
+
   // 上传配置
-  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  MAX_FILE_SIZE: 128 * 1024 * 1024, // 128MB
   ALLOWED_FILE_TYPES: ['.xlsx', '.xls', '.csv', '.pdf', '.jpg', '.png'],
-  
+
   // 状态配置
   STATUS: {
     ACTIVE: 'active',
@@ -23,14 +23,14 @@ export const APP_CONFIG = {
     COMPLETED: 'completed',
     FAILED: 'failed',
   },
-  
+
   // 用户角色
   ROLES: {
     ADMIN: 'admin',
     USER: 'user',
     VIEWER: 'viewer',
   },
-  
+
   // 权限级别
   PERMISSIONS: {
     READ: 'read',

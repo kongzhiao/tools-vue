@@ -54,6 +54,7 @@ export interface StatisticsResult {
   total_count: number;
   matched_count: number;
   unmatched_count: number;
+  unmatched_data_count: number;
   suspicious_count: number;
   total_payment: number;
   payment_formatted: string;
@@ -232,9 +233,10 @@ export async function validateInsuranceDataFile(data: FormData) {
 // 导入保险数据
 export async function importInsuranceData(data: FormData) {
   return request<ApiResponse<{
-    imported_count: number;
-    skipped_count: number;
-    error_rows: any[];
+    uuid?: string;
+    imported_count?: number;
+    skipped_count?: number;
+    error_rows?: any[];
   }>>('/api/insurance-data/import', {
     method: 'POST',
     data,
@@ -253,10 +255,11 @@ export async function validateImportLevelMatch(data: FormData) {
 // 普通参保档次匹配导入
 export async function importLevelMatch(data: FormData) {
   return request<ApiResponse<{
-    success_count: number;
-    fail_count: number;
-    total_rows: number;
-    errors: string[];
+    uuid?: string;
+    success_count?: number;
+    fail_count?: number;
+    total_rows?: number;
+    errors?: string[];
   }>>('/api/insurance-data/import-level-match', {
     method: 'POST',
     data,
@@ -276,10 +279,11 @@ export async function validateImportStreetTown(data: FormData) {
 // 认定区匹配
 export async function importStreetTown(data: FormData) {
   return request<ApiResponse<{
-    success_count: number;
-    fail_count: number;
-    total_rows: number;
-    errors: string[];
+    uuid?: string;
+    success_count?: number;
+    fail_count?: number;
+    total_rows?: number;
+    errors?: string[];
   }>>('/api/insurance-data/import-street-town', {
     method: 'POST',
     data,

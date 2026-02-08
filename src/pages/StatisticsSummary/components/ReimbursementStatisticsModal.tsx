@@ -4,6 +4,7 @@ import { useAccess } from '@umijs/max';
 import { exportReimbursementStatistics } from '@/services/statisticsSummary';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { UploadOutlined, DownloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
 interface ReimbursementStatisticsModalProps {
   visible: boolean;
@@ -407,6 +408,7 @@ const ReimbursementStatisticsModal: React.FC<ReimbursementStatisticsModalProps> 
       footer={[
         access.canExportStatisticsSummary && (
           <Button key="export" type="primary" onClick={handleExport}>
+            {<DownloadOutlined />}
             导出报销统计
           </Button>
         ),

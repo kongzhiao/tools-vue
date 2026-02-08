@@ -70,7 +70,7 @@ const Patients: React.FC = () => {
         page_size: pageSize,
         ...filters,
       });
-      
+
       if (response.code === 0) {
         setPatients(response.data.data);
         setPagination({
@@ -106,6 +106,18 @@ const Patients: React.FC = () => {
     fetchInsuranceAreas();
   }, []);
 
+  // 监听任务状态变更事件，自动刷新数据
+  useEffect(() => {
+    const handleTaskStatusChanged = () => {
+      fetchPatients(pagination.current, pagination.pageSize);
+    };
+
+    window.addEventListener('taskStatusChanged', handleTaskStatusChanged);
+    return () => {
+      window.removeEventListener('taskStatusChanged', handleTaskStatusChanged);
+    };
+  }, [pagination.current, pagination.pageSize]);
+
   const handleAdd = () => {
     setEditingPatient(null);
     form.resetFields();
@@ -130,7 +142,7 @@ const Patients: React.FC = () => {
 
   const handleDelete = async () => {
     if (!deletePatientId) return;
-    
+
     try {
       const response = await patientAPI.deletePatient(deletePatientId, cascadeDelete);
       if (response.code === 0) {
@@ -154,7 +166,7 @@ const Patients: React.FC = () => {
         // 更新患者
         const response = await patientAPI.updatePatient(editingPatient.id, values);
         if (response.code === 0) {
-        message.success('患者信息更新成功');
+          message.success('患者信息更新成功');
           setModalVisible(false);
           fetchPatients(pagination.current, pagination.pageSize);
         } else {
@@ -165,7 +177,7 @@ const Patients: React.FC = () => {
         const response = await patientAPI.createPatient(values);
         if (response.code === 0) {
           message.success('患者信息创建成功');
-      setModalVisible(false);
+          setModalVisible(false);
           fetchPatients(pagination.current, pagination.pageSize);
         } else {
           message.error(response.message || '创建失败');
@@ -179,14 +191,14 @@ const Patients: React.FC = () => {
   const handleSearch = () => {
     const values = searchForm.getFieldsValue();
     const filters: Record<string, any> = {};
-    
+
     // 过滤空值
     Object.keys(values).forEach(key => {
       if (values[key] !== undefined && values[key] !== '') {
         filters[key] = values[key];
       }
     });
-    
+
     fetchPatients(1, pagination.pageSize, filters);
     setPagination(prev => ({ ...prev, current: 1 }));
   };
@@ -200,13 +212,13 @@ const Patients: React.FC = () => {
   const handleTableChange = (pagination: any) => {
     const values = searchForm.getFieldsValue();
     const filters: Record<string, any> = {};
-    
+
     Object.keys(values).forEach(key => {
       if (values[key] !== undefined && values[key] !== '') {
         filters[key] = values[key];
       }
     });
-    
+
     fetchPatients(pagination.current, pagination.pageSize, filters);
   };
 
@@ -249,7 +261,7 @@ const Patients: React.FC = () => {
         page: 1,
         page_size: 1000,
       });
-      
+
       if (response.code === 0) {
         setCurrentPatientRecords(response.data.data);
         setRecordsModalVisible(true);
@@ -479,7 +491,7 @@ const Patients: React.FC = () => {
               style={{ width: 200 }}
               dataSource={insuranceAreas}
               filterOption={(inputValue, option) =>
-                typeof option?.value === 'string' && 
+                typeof option?.value === 'string' &&
                 option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
               }
             />
@@ -513,8 +525,8 @@ const Patients: React.FC = () => {
                 cancelText="取消"
                 disabled={selectedRowKeys.length === 0}
               >
-                <Button 
-                  danger 
+                <Button
+                  danger
                   icon={<DeleteOutlined />}
                   disabled={selectedRowKeys.length === 0}
                 >
@@ -572,22 +584,22 @@ const Patients: React.FC = () => {
             insurance_area: '',
           }}
         >
-              <Form.Item
-                name="name"
+          <Form.Item
+            name="name"
             label="姓名"
-                rules={[{ required: true, message: '请输入患者姓名' }]}
-              >
-                <Input placeholder="请输入患者姓名" />
-              </Form.Item>
-              <Form.Item
+            rules={[{ required: true, message: '请输入患者姓名' }]}
+          >
+            <Input placeholder="请输入患者姓名" />
+          </Form.Item>
+          <Form.Item
             name="id_card"
-                label="身份证号"
-                rules={[
-                  { required: true, message: '请输入身份证号' },
+            label="身份证号"
+            rules={[
+              { required: true, message: '请输入身份证号' },
               { pattern: /^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/, message: '请输入正确的身份证号' }
-                ]}
-              >
-                <Input placeholder="请输入身份证号" />
+            ]}
+          >
+            <Input placeholder="请输入身份证号" />
           </Form.Item>
           <Form.Item
             name="insurance_area"
@@ -598,7 +610,7 @@ const Patients: React.FC = () => {
               placeholder="请选择或输入参保地区"
               dataSource={insuranceAreas}
               filterOption={(inputValue, option) =>
-                typeof option?.value === 'string' && 
+                typeof option?.value === 'string' &&
                 option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
               }
             />

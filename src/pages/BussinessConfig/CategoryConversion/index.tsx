@@ -25,7 +25,7 @@ import {
   ReloadOutlined,
   SwapOutlined,
   InfoCircleOutlined,
-  ImportOutlined
+  UploadOutlined
 } from '@ant-design/icons';
 import { request, useAccess } from '@umijs/max';
 import ImportModal from './ImportModal';
@@ -303,7 +303,7 @@ const CategoryConversion: React.FC = () => {
                   重置
                 </Button>
                 {access.canCreateCategoryConversion && (
-                  <Button icon={<ImportOutlined />} onClick={() => setImportModalVisible(true)}>
+                  <Button icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)}>
                     导入
                   </Button>
                 )}

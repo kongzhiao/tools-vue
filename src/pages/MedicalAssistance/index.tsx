@@ -41,7 +41,7 @@ const MedicalAssistance: React.FC = () => {
     },
     {
       title: '数据导入',
-      description: '通过Excel文件批量导入患者、就诊记录和报销数据',
+      description: '通过CSV文件批量导入患者、就诊记录和报销数据',
       icon: <PlusOutlined style={{ fontSize: '48px', color: '#fa8c16' }} />,
       path: '/medical-assistance/reimbursement',
       color: '#fa8c16',
@@ -94,7 +94,7 @@ const MedicalAssistance: React.FC = () => {
                 <Paragraph style={{ margin: 0, color: '#666', fontSize: '14px' }}>
                   {module.description}
                 </Paragraph>
-      </Card>
+              </Card>
             </Col>
           ))}
         </Row>
@@ -126,7 +126,7 @@ const MedicalAssistance: React.FC = () => {
                 <li>报销明细的创建和管理</li>
                 <li>银行账户信息管理</li>
                 <li>报销状态跟踪</li>
-                <li>Excel数据导入</li>
+                <li>CSV数据导入</li>
               </ul>
             </Col>
             <Col span={12}>

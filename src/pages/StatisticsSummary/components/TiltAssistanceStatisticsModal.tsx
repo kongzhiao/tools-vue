@@ -4,6 +4,7 @@ import { useAccess } from '@umijs/max';
 import { exportTiltAssistanceStatistics } from '@/services/statisticsSummary';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { UploadOutlined, DownloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
 interface TiltAssistanceStatisticsModalProps {
   visible: boolean;
@@ -77,6 +78,7 @@ const TiltAssistanceStatisticsModal: React.FC<TiltAssistanceStatisticsModalProps
       footer={[
         access.canExportStatisticsSummary && (
           <Button key="export" type="primary" onClick={handleExport}>
+            <DownloadOutlined />
             导出倾斜救助统计
           </Button>
         ),

@@ -22,23 +22,14 @@ const SourceImportModal: React.FC<SourceImportModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [fileList, setFileList] = useState<any[]>([]);
 
-  // 处理文件上传
-  const handleUpload = async (file: File) => {
-    // 验证文件类型
-    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                   file.type === 'application/vnd.ms-excel';
-    if (!isExcel) {
-      message.error('只能上传 Excel 文件！');
-      return false;
+  // 确认导入
+  const handleConfirmImport = async () => {
+    if (fileList.length === 0) {
+      message.error('请先选择文件');
+      return;
     }
 
-    // 验证文件大小（5MB）
-    const isLt5M = file.size / 1024 / 1024 < 5;
-    if (!isLt5M) {
-      message.error('文件大小不能超过 5MB！');
-      return false;
-    }
-
+    const file = fileList[0];
     setUploading(true);
 
     const formData = new FormData();
@@ -49,12 +40,8 @@ const SourceImportModal: React.FC<SourceImportModalProps> = ({
       const response = await importLevelMatch(formData);
       if (response.code === 0) {
         message.success(`导入完成，已匹配上${response.data.success_count}条，已忽略${response.data.fail_count}条`);
-        // 立即调用成功回调刷新数据
         onSuccess();
-        // 延迟关闭模态框，让用户看到完成状态
-        setTimeout(() => {
-          onCancel();
-        }, 2000);
+        handleCancel();
       } else {
         message.error(response.message || '导入失败');
       }
@@ -63,131 +50,121 @@ const SourceImportModal: React.FC<SourceImportModalProps> = ({
       console.error(error);
     } finally {
       setUploading(false);
-      setFileList([]);
     }
   };
 
   const uploadProps: UploadProps = {
-    accept: '.xlsx,.xls',
+    accept: '.csv',
     fileList,
     beforeUpload: (file) => {
-      handleUpload(file);
-      return false;
+      // 验证文件类型
+      const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv');
+      if (!isCsv) {
+        message.error('只能上传 CSV 文件！');
+        return false;
+      }
+
+      // 验证文件大小（128MB）
+      const isLt128M = file.size / 1024 / 1024 < 128;
+      if (!isLt128M) {
+        message.error('文件大小不能超过 128MB！');
+        return false;
+      }
+
+      setFileList([file]);
+      return false; // 阻止自动上传
     },
-    onChange: ({ fileList }) => {
-      setFileList(fileList);
+    onRemove: () => {
+      setFileList([]);
     },
   };
 
   // 下载模板
   const downloadTemplate = () => {
-    const templateUrl = '/assets/templates/data-verification/数据核实-匹配档次数据.xlsx';
+    const templateUrl = '/assets/templates/data-verification/数据核实-匹配档次数据.csv';
     const link = document.createElement('a');
     link.href = templateUrl;
-    link.download = '数据核实-匹配档次数据.xlsx';
+    link.download = '数据核实-匹配档次数据.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleCancel = () => {
+    setFileList([]);
+    onCancel();
   };
 
   return (
     <Modal
       title="导入参保档次匹配数据"
       open={visible}
-      onCancel={() => {
-        onCancel();
-      }}
-      footer={null}
-      width={800}
+      onCancel={handleCancel}
+      footer={[
+        <Button key="cancel" onClick={handleCancel}>
+          关闭
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={uploading}
+          disabled={fileList.length === 0}
+          onClick={handleConfirmImport}
+        >
+          确认导入
+        </Button>
+      ]}
+      width={600}
     >
-      <div style={{ padding: '20px 0' }}>
+      <div style={{ padding: '10px 0' }}>
         {/* 说明信息 */}
         <Alert
-          message="使用说明"
+          message="导入说明"
           description={
             <div>
-              <Paragraph style={{ marginBottom: 8 }}>
-                1. 请按照模板格式准备 Excel 文件，包含以下列：
-              </Paragraph>
-              <ul style={{ marginBottom: 16 }}>
-                <li><Text strong>身份证号</Text>：参保人员的身份证号码</li>
-                <li><Text strong>个人实缴金额</Text>：该人员的个人实际缴费金额</li>
-              </ul>
-              <Paragraph style={{ marginBottom: 8 }}>
-                2. 系统将根据身份证号匹配参保数据，并根据代缴类别和个人实缴金额自动匹配对应的参保档次
-              </Paragraph>
-              <Paragraph style={{ marginBottom: 8 }}>
-                3. 匹配成功的数据将自动更新档次和个人实缴金额，并将匹配状态设置为已匹配
-              </Paragraph>
+              <p>1. 请先下载模板文件，按照模板格式填写数据</p>
+              <p>2. 系统将根据身份证号自动匹配参保档次</p>
+              <p>3. 仅支持 .csv 格式，文件大小不超过 128MB</p>
+              <div style={{ marginTop: 8 }}>
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={downloadTemplate}
+                  disabled={uploading}
+                  size="small"
+                >
+                  下载导入模板
+                </Button>
+              </div>
             </div>
           }
           type="info"
           showIcon
-          style={{ marginBottom: 24 }}
+          style={{ marginBottom: 16 }}
         />
-
-        {/* 字段验证说明 */}
-        <Alert
-          message="字段验证规则"
-          description={
-            <div>
-              <ul>
-                <li>身份证号：必须为有效的18位身份证号码</li>
-                <li>个人实缴金额：必须为数字，且与参保档次配置中的金额匹配</li>
-                <li>文件格式：仅支持 .xlsx 和 .xls 格式</li>
-                <li>文件大小：不超过 10MB</li>
-              </ul>
-            </div>
-          }
-          type="warning"
-          showIcon
-          style={{ marginBottom: 24 }}
-        />
-
-        <Divider />
 
         {/* 操作区域 */}
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Space>
-            <Button 
-              icon={<DownloadOutlined />} 
-              onClick={downloadTemplate}
-              disabled={uploading}
-            >
-              下载模板
-            </Button>
-            <Text type="secondary">请先下载模板，按照格式填写数据</Text>
-          </Space>
-
-          <Upload {...uploadProps}>
-            <Button 
-              icon={<UploadOutlined />} 
-              loading={uploading}
-              type="primary"
-              size="large"
-              disabled={uploading}
-            >
-              {uploading ? '正在导入...' : '选择文件并导入'}
-            </Button>
-          </Upload>
-
-          {fileList.length > 0 && (
-            <Text type="secondary">
-              已选择文件：{fileList[0]?.name}
-            </Text>
-          )}
-        </Space>
+        <div style={{ marginBottom: 16 }}>
+          <Upload.Dragger {...uploadProps}>
+            <p className="ant-upload-drag-icon">
+              <UploadOutlined />
+            </p>
+            <p className="ant-upload-text">点击或拖拽CSV文件到此区域上传</p>
+            <p className="ant-upload-hint">
+              仅支持 .csv 格式，文件大小不超过 128MB
+            </p>
+          </Upload.Dragger>
+        </div>
 
         {/* 注意事项 */}
-        <Divider />
         <Alert
           message="注意事项"
           description={
-            <ul style={{ margin: 0 }}>
+            <ul style={{ margin: 0, paddingLeft: 16 }}>
               <li>导入前请确保参保档次配置已正确设置</li>
               <li>身份证号必须在系统中存在对应的参保数据</li>
-              <li>个人实缴金额必须与参保档次配置中的金额完全匹配</li>
-              <li>导入过程中请勿关闭页面或刷新浏览器</li>
+              <li>个人实缴金额必须与配置完全匹配</li>
+              <li>导入过程中请勿关闭或刷新页面</li>
             </ul>
           }
           type="warning"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from 'react';
 import { Drawer, Tag, Progress, Button, Space, Tooltip, message } from 'antd';
 import { ReloadOutlined, DownloadOutlined, CloseOutlined } from '@ant-design/icons';
 import { getTaskList, getTaskCount, TaskItem } from '@/services/task';
@@ -36,13 +36,35 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
     const [pageSize, setPageSize] = useState(10);
     const [pendingCount, setPendingCount] = useState(0); // 未完成任务数
 
+    const lastTaskStatuses = useRef<Record<string, string>>({});
+
     // 获取任务列表
     const fetchData = useCallback(async (currentPage = page, currentPageSize = pageSize) => {
         setLoading(true);
         try {
             const res = await getTaskList({ page: currentPage, page_size: currentPageSize });
             if (res.code === 200) {
-                setData(res.data.list);
+                const newList = res.data.list;
+
+                // 检测任务状态变迁
+                let hasStatusChanged = false;
+                newList.forEach(task => {
+                    const prevStatus = lastTaskStatuses.current[task.uuid];
+                    // 如果任务从 进行中/排队中 变为 完成/失败
+                    if (prevStatus && (prevStatus === 'processing' || prevStatus === 'pending') &&
+                        (task.status === 'completed' || task.status === 'failed')) {
+                        hasStatusChanged = true;
+                    }
+                    // 更新记录
+                    lastTaskStatuses.current[task.uuid] = task.status;
+                });
+
+                if (hasStatusChanged) {
+                    console.log('检测到任务完成，派发刷新事件');
+                    window.dispatchEvent(new CustomEvent('taskStatusChanged'));
+                }
+
+                setData(newList);
                 setTotal(res.data.total);
             }
         } catch (error) {
