@@ -207,13 +207,6 @@ export default defineConfig({
       icon: 'GlobalOutlined',
       access: 'canAccessOnlineSettlement',
     },
-    {
-      name: '结算台账',
-      path: '/yf/settlement-account',
-      component: './YfSettlement/Account',
-      icon: 'MoneyCollectOutlined',
-      access: 'canAccessAccountSettlement',
-    },
   ],
   npmClient: 'pnpm',
 });

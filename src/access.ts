@@ -159,18 +159,13 @@ export default (initialState: {
     // 联网结算
     canReadOnlineSettlement: hasPermission('联网结算:查看'),
     canImportOnlineSettlement: hasPermission('联网结算:导入'),
-    canExportOnlineSettlement: hasPermission('联网结算:导出'),
+    canExportDetailsOnlineSettlement: hasPermission('联网结算:导出明细'),
+    canExportLedgerOnlineSettlement: hasPermission('联网结算:导出台账'),
     canTagOnlineSettlement: hasPermission('联网结算:标记'),
     canDeleteOnlineSettlement: hasPermission('联网结算:删除'),
+    canRecalculateOnlineSettlement: hasPermission('联网结算:重算'),
     canAccessOnlineSettlement: hasModulePermission('联网结算'),
 
-    // 结算台账
-    canReadSettlementAccount: hasPermission('结算台账:查看'),
-    canImportSettlementAccount: hasPermission('结算台账:导入'),
-    canExportSettlementAccount: hasPermission('结算台账:导出'),
-    canTagSettlementAccount: hasPermission('结算台账:标记'),
-    canDeleteSettlementAccount: hasPermission('结算台账:删除'),
-    canAccessAccountSettlement: hasModulePermission('结算台账'),
 
 
 

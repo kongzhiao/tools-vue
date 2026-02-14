@@ -122,3 +122,18 @@ export async function recalculateYfSettlements(data: any) {
         data,
     });
 }
+
+/** 删除结算明细 (单条) */
+export async function deleteYfSettlement(id: number) {
+    return request(`/api/yf-settlements/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+/** 批量删除结算明细 */
+export async function batchDeleteYfSettlements(data: { ids: React.Key[] }) {
+    return request('/api/yf-settlements/batch-delete', {
+        method: 'POST',
+        data,
+    });
+}

@@ -21,6 +21,7 @@ import {
   Upload,
   Radio,
   Typography,
+  Dropdown,
 } from 'antd';
 import {
   SearchOutlined,
@@ -45,6 +46,8 @@ import {
   exportYfLedger,
   getQuotaCategories,
   recalculateYfSettlements,
+  deleteYfSettlement,
+  batchDeleteYfSettlements,
 } from '@/services/yfSettlement';
 import dayjs from 'dayjs';
 
@@ -268,6 +271,75 @@ const YfSettlementOnlinePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 单条删除
+  const handleDelete = (record: any) => {
+    Modal.confirm({
+      title: '删除确认',
+      content: (
+        <div>
+          <p style={{ color: '#ff4d4f', fontWeight: 'bold' }}>删除后无法恢复，确定要继续吗？</p>
+          <Card size="small" style={{ backgroundColor: '#fafafa' }}>
+            <div style={{ marginBottom: 4 }}><b>姓名：</b>{record.name}</div>
+            <div style={{ marginBottom: 4 }}><b>身份证号：</b>{record.id_card}</div>
+            <div style={{ marginBottom: 4 }}><b>优抚类别：</b>{record.category || '-'}</div>
+            <div style={{ marginBottom: 4 }}><b>所属期：</b>{record.period_belong || '-'}</div>
+            <div style={{ marginBottom: 4 }}><b>年度额度：</b>¥{Number(record.annual_quota || 0).toFixed(2)}</div>
+            <div style={{ marginBottom: 4 }}><b>本次补助：</b><span style={{ color: '#52c41a', fontWeight: 'bold' }}>¥{Number(record.current_subsidy || 0).toFixed(2)}</span></div>
+            <div><b>剩余额度：</b>¥{Number(record.remaining_amount || 0).toFixed(2)}</div>
+          </Card>
+        </div>
+      ),
+      okText: '确定删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await deleteYfSettlement(record.id);
+          if (res.code === 0) {
+            message.success('删除成功');
+            fetchData(currentPage, pageSize);
+          }
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
+  };
+
+  // 批量删除
+  const handleBatchDelete = () => {
+    // 检查选中项中是否包含已支付记录
+    const paidItems = data.filter(item => selectedRowKeys.includes(item.id) && item.pay_status === 1);
+
+    if (paidItems.length > 0) {
+      Modal.warning({
+        title: '操作拦截',
+        content: `选中的记录中包含 ${paidItems.length} 条“已支付”数据，已支付记录不允许删除。请取消勾选后再试。`,
+      });
+      return;
+    }
+
+    Modal.confirm({
+      title: '批量删除确认',
+      content: `确定要删除选中的 ${selectedRowKeys.length} 条结算记录吗？`,
+      okText: '确定批量删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const res = await batchDeleteYfSettlements({ ids: selectedRowKeys });
+          if (res.code === 0) {
+            message.success('批量删除成功');
+            setSelectedRowKeys([]);
+            fetchData(currentPage, pageSize);
+          }
+        } catch (error) {
+          message.error('批量删除失败');
+        }
+      },
+    });
   };
 
   // 专门的联网结算打印功能 (全字段对齐)
@@ -503,22 +575,7 @@ const YfSettlementOnlinePage: React.FC = () => {
       width: 130,
       render: (v: any) => <span style={{ fontWeight: 'bold' }}>{Number(v || 0).toFixed(2)}</span>
     },
-    { title: '年度额度 ¥', dataIndex: 'annual_quota', key: 'annual_quota', width: 110, render: (v: any) => Number(v || 0).toFixed(2) },
     { title: '已使用 ¥', dataIndex: 'used_amount', key: 'used_amount', width: 110, render: (v: any) => Number(v || 0).toFixed(2) },
-    {
-      title: '本次补助 ¥',
-      dataIndex: 'current_subsidy',
-      key: 'current_subsidy',
-      width: 110,
-      render: (v: any) => <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{Number(v || 0).toFixed(2)}</span>
-    },
-    {
-      title: '剩余额度',
-      dataIndex: 'remaining_amount',
-      key: 'remaining_amount',
-      width: 110,
-      render: (v: any) => Number(v || 0).toFixed(2)
-    },
     {
       title: '备注',
       dataIndex: 'remark',
@@ -530,17 +587,6 @@ const YfSettlementOnlinePage: React.FC = () => {
           <span>{text}</span>
         </Tooltip>
       ),
-    },
-    {
-      title: '支付状态',
-      dataIndex: 'pay_status',
-      key: 'pay_status',
-      width: 100,
-      render: (status: number) => {
-        if (status === -1) return <Tag color="default">不需支付</Tag>;
-        if (status === 1) return <Tag color="success">已支付</Tag>;
-        return <Tag color="warning">待支付</Tag>;
-      }
     },
     {
       title: '支付时间',
@@ -559,13 +605,92 @@ const YfSettlementOnlinePage: React.FC = () => {
       render: (v: any) => v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-'
     },
     {
+      title: '年度额度 ¥',
+      dataIndex: 'annual_quota',
+      key: 'annual_quota',
+      fixed: 'right' as const,
+      width: 110,
+      render: (v: any) => Number(v || 0).toFixed(2)
+    },
+    {
+      title: '本次补助 ¥',
+      dataIndex: 'current_subsidy',
+      key: 'current_subsidy',
+      fixed: 'right' as const,
+      width: 110,
+      render: (v: any) => <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{Number(v || 0).toFixed(2)}</span>
+    },
+    {
+      title: '剩余额度',
+      dataIndex: 'remaining_amount',
+      key: 'remaining_amount',
+      fixed: 'right' as const,
+      width: 110,
+      render: (v: any) => Number(v || 0).toFixed(2)
+    },
+    {
+      title: '支付状态',
+      dataIndex: 'pay_status',
+      key: 'pay_status',
+      fixed: 'right' as const,
+      width: 100,
+      render: (status: number) => {
+        if (status === -1) return <Tag color="default">不需支付</Tag>;
+        if (status === 1) return <Tag color="success">已支付</Tag>;
+        return <Tag color="warning">待支付</Tag>;
+      }
+    },
+    {
       title: '操作',
       key: 'action',
       fixed: 'right' as const,
-      width: 100,
-      render: (_: any, record: any) => (
-        <Space size="small">
-          {record.pay_status !== -1 && (
+      width: 140,
+      render: (_: any, record: any) => {
+        const showTag = record.pay_status !== -1 && access.canTagOnlineSettlement;
+        const showDelete = access.canDeleteOnlineSettlement;
+
+        if (showTag && showDelete) {
+          return (
+            <Space size={0}>
+              <Button
+                type="link"
+                size="small"
+                style={{ paddingRight: 4 }}
+                onClick={() => {
+                  setCurrentRecord(record);
+                  payForm.setFieldsValue({
+                    pay_at: dayjs(),
+                    remark: '指定标注'
+                  });
+                  setPayModalVisible(true);
+                }}
+              >
+                标记支付
+              </Button>
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'delete',
+                      label: '删除',
+                      danger: true,
+                      disabled: record.pay_status === 1,
+                      onClick: () => handleDelete(record),
+                    },
+                  ],
+                }}
+                placement="bottomRight"
+              >
+                <Button type="link" size="small" style={{ paddingLeft: 0, paddingRight: 4, marginLeft: -4 }}>
+                  <DownOutlined style={{ fontSize: '10px' }} />
+                </Button>
+              </Dropdown>
+            </Space>
+          );
+        }
+
+        if (showTag) {
+          return (
             <Button
               type="link"
               size="small"
@@ -580,9 +705,25 @@ const YfSettlementOnlinePage: React.FC = () => {
             >
               标记支付
             </Button>
-          )}
-        </Space>
-      ),
+          );
+        }
+
+        if (showDelete) {
+          return (
+            <Button
+              type="link"
+              size="small"
+              danger
+              disabled={record.pay_status === 1}
+              onClick={() => handleDelete(record)}
+            >
+              删除
+            </Button>
+          );
+        }
+
+        return '-';
+      },
     },
   ];
 
@@ -768,45 +909,59 @@ const YfSettlementOnlinePage: React.FC = () => {
       <Card>
         <div style={{ marginBottom: 16 }}>
           <Space>
-            <Button
-              type="primary"
-              icon={<CloudUploadOutlined />}
-              onClick={() => setImportModalVisible(true)}
-              disabled={!access.canImportOnlineSettlement}
-            >
-              导入
-            </Button>
-            <Button
-              icon={<CloudDownloadOutlined />}
-              onClick={handleExport}
-              disabled={!access.canExportOnlineSettlement}
-            >
-              导出明细
-            </Button>
-            <Button
-              icon={<FileExcelOutlined />}
-              onClick={handleExportLedger}
-              disabled={!access.canExportSettlementAccount}
-            >
-              导出结算台账
-            </Button>
+            {access.canImportOnlineSettlement && (
+              <Button
+                type="primary"
+                icon={<CloudUploadOutlined />}
+                onClick={() => setImportModalVisible(true)}
+              >
+                导入
+              </Button>
+            )}
+            {access.canExportDetailsOnlineSettlement && (
+              <Button
+                icon={<CloudDownloadOutlined />}
+                onClick={handleExport}
+              >
+                导出明细
+              </Button>
+            )}
+            {access.canExportLedgerOnlineSettlement && (
+              <Button
+                icon={<FileExcelOutlined />}
+                onClick={handleExportLedger}
+              >
+                导出结算台账
+              </Button>
+            )}
             <Button
               icon={<PrinterOutlined />}
               onClick={handlePrint}
             >
               打印
             </Button>
-            {/* <Button
-              danger
-              icon={<ReloadOutlined />}
-              loading={loading}
-              onClick={handleRecalculate}
-            >
-              重新计算
-            </Button> */}
-            {selectedRowKeys.length > 0 && (
+            {access.canRecalculateOnlineSettlement && (
+              <Button
+                danger
+                icon={<ReloadOutlined />}
+                loading={loading}
+                onClick={handleRecalculate}
+              >
+                重新计算
+              </Button>
+            )}
+            {selectedRowKeys.length > 0 && access.canTagOnlineSettlement && (
               <Button
                 onClick={() => {
+                  const payableIds = data.filter(item => selectedRowKeys.includes(item.id) && item.pay_status !== -1).map(item => item.id);
+                  if (payableIds.length === 0) {
+                    message.warning('选中项中没有需要支付的记录');
+                    return;
+                  }
+                  if (payableIds.length < selectedRowKeys.length) {
+                    message.info(`已自动为您处理选中的 ${payableIds.length} 条待支付记录`);
+                    setSelectedRowKeys(payableIds);
+                  }
                   setCurrentRecord(null);
                   payForm.setFieldsValue({
                     pay_at: dayjs(),
@@ -815,20 +970,68 @@ const YfSettlementOnlinePage: React.FC = () => {
                   setPayModalVisible(true);
                 }}
               >
-                批量标注支付 ({selectedRowKeys.length})
+                批量标注支付 ({data.filter(i => selectedRowKeys.includes(i.id) && i.pay_status !== -1).length})
+              </Button>
+            )}
+            {selectedRowKeys.length > 0 && access.canDeleteOnlineSettlement && (
+              <Button
+                danger
+                onClick={handleBatchDelete}
+              >
+                批量删除 ({selectedRowKeys.length})
               </Button>
             )}
           </Space>
         </div>
 
+        {selectedRowKeys.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <Alert
+              message={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>
+                    已选择 <span style={{ fontWeight: 'bold', color: '#1890ff' }}>{selectedRowKeys.length}</span> 项记录
+                    {(() => {
+                      const payableCount = data.filter(i => selectedRowKeys.includes(i.id) && i.pay_status !== -1).length;
+                      const hasFilterable = data.some(i => selectedRowKeys.includes(i.id) && i.pay_status === -1);
+                      if (hasFilterable) {
+                        return (
+                          <span style={{ marginLeft: 16 }}>
+                            其中 <Tag color="success">{payableCount}</Tag> 项可标注支付，
+                            <Tag color="default">{selectedRowKeys.length - payableCount}</Tag> 项不需支付 (已为您自动跳过)
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </span>
+                  <Space>
+                    <Button
+                      size="small"
+                      type="link"
+                      onClick={() => {
+                        const payableIds = data.filter(i => selectedRowKeys.includes(i.id) && i.pay_status !== -1).map(i => i.id);
+                        setSelectedRowKeys(payableIds);
+                        message.success('已自动过滤不需支付记录');
+                      }}
+                    >
+                      仅选可支付项
+                    </Button>
+                    <Button size="small" type="link" onClick={() => setSelectedRowKeys([])}>清空选择</Button>
+                  </Space>
+                </div>
+              }
+              type="info"
+              showIcon
+            />
+          </div>
+        )}
+
         <Table
-          rowSelection={{
+          rowSelection={(access.canTagOnlineSettlement || access.canDeleteOnlineSettlement) ? {
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),
-            getCheckboxProps: (record) => ({
-              disabled: record.pay_status === -1,
-            }),
-          }}
+          } : undefined}
           columns={columns}
           dataSource={data}
           loading={loading}

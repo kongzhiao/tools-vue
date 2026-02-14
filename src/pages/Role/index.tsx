@@ -156,61 +156,7 @@ const Role: React.FC = () => {
       setPermissionModalVisible(false);
       permissionForm.resetFields();
 
-      // 强制刷新角色列表数据
       await fetchRoles();
-
-      // 更新选中的角色数据 - 使用权限分配API获取最新数据
-      if (selectedRole) {
-        const response = await request(`/api/roles/${selectedRole.id}/permissions`, {
-          method: 'GET',
-        });
-        if (response.code === 0) {
-          // 提取已分配的权限ID
-          const extractPermissionIds = (permissions: any[]): number[] => {
-            const ids: number[] = [];
-            permissions.forEach(permission => {
-              if (permission.has_permission) {
-                ids.push(permission.id);
-              }
-              if (permission.children && permission.children.length > 0) {
-                ids.push(...extractPermissionIds(permission.children));
-              }
-            });
-            return ids;
-          };
-
-          const permissionIds = extractPermissionIds(response.data);
-
-          // 构建权限显示数据
-          const buildDisplayPermissions = (permissions: any[]): any[] => {
-            const displayPermissions: any[] = [];
-            permissions.forEach(permission => {
-              if (permission.has_permission) {
-                const displayPermission = {
-                  id: permission.id,
-                  name: permission.name,
-                  type: permission.type,
-                  description: permission.description,
-                  children: permission.children ? buildDisplayPermissions(permission.children) : []
-                };
-                displayPermissions.push(displayPermission);
-              }
-            });
-            return displayPermissions;
-          };
-
-          const displayPermissions = buildDisplayPermissions(response.data);
-
-          // 更新角色列表中的对应角色
-          setRoles(prevRoles =>
-            prevRoles.map(role =>
-              role.id === selectedRole.id
-                ? { ...role, permissions: displayPermissions }
-                : role
-            )
-          );
-        }
-      }
     } catch (error) {
       console.error('权限分配失败:', error);
       message.error('权限分配失败');
