@@ -208,13 +208,6 @@ export default defineConfig({
       access: 'canAccessOnlineSettlement',
     },
     {
-      name: '非联网结算',
-      path: '/yf/settlement-offline',
-      component: './YfSettlement/Offline',
-      icon: 'LogoutOutlined',
-      access: 'canAccessOfflineSettlement',
-    },
-    {
       name: '结算台账',
       path: '/yf/settlement-account',
       component: './YfSettlement/Account',

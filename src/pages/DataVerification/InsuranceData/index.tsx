@@ -746,7 +746,6 @@ const InsuranceDataPage: React.FC = () => {
               onChange={(e) => handleFilterChange('id_number', e.target.value)}
               placeholder="请输入身份证号"
               allowClear
-              style={{ width: '180px' }}
             />
           </Form.Item>
         </Col>

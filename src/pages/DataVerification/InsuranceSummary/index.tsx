@@ -10,26 +10,22 @@ import {
   Statistic,
   Row,
   Col,
-  message,
   App,
   Typography,
   Divider,
-  Tooltip,
 } from 'antd';
 import { useAccess } from '@umijs/max';
 import {
   DownloadOutlined,
   ReloadOutlined,
-  FileExcelOutlined,
-  BarChartOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getYears, getStatistics } from '@/services/insuranceData';
-import { getInsuranceSummary, CategoryLevelMapping, InsuranceSummaryResponse } from '@/services/insuranceSummary';
+import { getInsuranceSummary, CategoryLevelMapping } from '@/services/insuranceSummary';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 interface InsuranceSummaryData {
@@ -51,14 +47,12 @@ interface InsuranceSummaryData {
 const InsuranceSummaryPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const access = useAccess();
-  
+
   // 状态管理
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [years, setYears] = useState<number[]>([]);
   const [statistics, setStatistics] = useState<any>(null);
   const [summaryData, setSummaryData] = useState<InsuranceSummaryData[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [levels, setLevels] = useState<string[]>([]);
   const [categoriesLevelsMapping, setCategoriesLevelsMapping] = useState<CategoryLevelMapping[]>([]);
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
@@ -97,8 +91,6 @@ const InsuranceSummaryPage: React.FC = () => {
       if (response.code === 0) {
         setSummaryData(response.data.data);
         setCategoriesLevelsMapping(response.data.categories_levels_mapping);
-        setCategories(response.data.categories);
-        setLevels(response.data.levels);
         setTotalCount(response.data.total_count);
         setTotalAmount(response.data.total_amount);
       } else {
@@ -114,168 +106,117 @@ const InsuranceSummaryPage: React.FC = () => {
 
   // 生成Excel多级表头配置
   const generateExcelHeaders = () => {
-    const firstRowHeaders: string[] = []; // 第一行：分组标题
-    const secondRowHeaders: string[] = []; // 第二行：具体字段
-    const thirdRowHeaders: string[] = []; // 第三行：人数和金额字段
+    const firstRowHeaders: string[] = [];
+    const secondRowHeaders: string[] = [];
+    const thirdRowHeaders: string[] = [];
     const colWidths: any[] = [];
-    const merges: any[] = []; // 合并单元格配置
-    
+    const merges: any[] = [];
+
     let colIndex = 0;
-    
-    // 添加镇街列
+
     firstRowHeaders.push('镇街');
     secondRowHeaders.push('');
     thirdRowHeaders.push('');
-    colWidths.push({ wch: 10 }); // 人数列
-    colWidths.push({ wch: 12 }); // 金额列
+    colWidths.push({ wch: 15 });
     colIndex += 1;
-    
-    // 合并镇街列
+
     merges.push({
       s: { r: 0, c: 0 },
       e: { r: 2, c: 0 }
     });
-    
-    // 使用categories_levels_mapping来生成列，确保显示所有配置的类别-档次组合
+
     categoriesLevelsMapping.forEach(categoryMapping => {
       const { category, levels: categoryLevels } = categoryMapping;
-      
-      const childCount = categoryLevels.length * 2; // 每个档次有2列：人数和金额
+      const childCount = categoryLevels.length * 2;
       const startCol = colIndex;
-      
-      // 第一行：类别标题
+
       firstRowHeaders.push(category);
-      
-      // 第二行和第三行：为每个档次添加标题
       categoryLevels.forEach(level => {
         secondRowHeaders.push(`${level}`);
-        secondRowHeaders.push(`${level}`); // 每个档次需要两列
+        secondRowHeaders.push(`${level}`);
         thirdRowHeaders.push(`人数`);
         thirdRowHeaders.push(`金额（元）`);
-        colWidths.push({ wch: 10 }); // 人数列
-        colWidths.push({ wch: 12 }); // 金额列
-        
-        // 合并第二行的档次标题
+        colWidths.push({ wch: 10 });
+        colWidths.push({ wch: 12 });
+
         merges.push({
           s: { r: 1, c: colIndex },
           e: { r: 1, c: colIndex + 1 }
         });
-        
+
         colIndex += 2;
       });
-      
-      // 如果子列数量大于1，需要合并第一行的单元格
+
       if (childCount > 1) {
         merges.push({
           s: { r: 0, c: startCol },
           e: { r: 0, c: startCol + childCount - 1 }
         });
       }
-      
-      // 为第一行添加空标题（除了第一个）
+
       for (let i = 1; i < childCount; i++) {
         firstRowHeaders.push('');
       }
     });
-    
-    // 添加总计列
+
     firstRowHeaders.push('总计');
-    firstRowHeaders.push(''); // 第一行需要两个单元格，第二个为空
+    firstRowHeaders.push('');
     secondRowHeaders.push('');
-    secondRowHeaders.push(''); // 第二行需要两个空字符串
+    secondRowHeaders.push('');
     thirdRowHeaders.push('总人数');
     thirdRowHeaders.push('总金额（元）');
-    colWidths.push({ wch: 10 });
     colWidths.push({ wch: 12 });
-    
+    colWidths.push({ wch: 15 });
 
-    // 合并总计列
     merges.push({
-      s: { r: 0, c: colIndex},
+      s: { r: 0, c: colIndex },
       e: { r: 1, c: colIndex + 1 }
     });
-    
-    return { 
-      firstRowHeaders, 
-      secondRowHeaders, 
-      thirdRowHeaders,
-      colWidths, 
-      merges 
-    };
+
+    return { firstRowHeaders, secondRowHeaders, thirdRowHeaders, colWidths, merges };
   };
 
   // 导出参保汇总数据
   const handleExport = () => {
     setExportLoading(true);
     try {
-      // 生成Excel多级表头配置
-      const { firstRowHeaders, secondRowHeaders, thirdRowHeaders,colWidths, merges } = generateExcelHeaders();
-      
-      // 准备Excel数据
+      const { firstRowHeaders, secondRowHeaders, thirdRowHeaders, colWidths, merges } = generateExcelHeaders();
+
       const excelData = summaryData.map((item) => {
-        const rowData = [item.street_town]; // 镇街
-        
-        // 按照categories_levels_mapping的顺序添加数据
+        const rowData = [item.street_town];
         categoriesLevelsMapping.forEach(categoryMapping => {
           const { category, levels: categoryLevels } = categoryMapping;
-          
           categoryLevels.forEach(level => {
             const count = item.categories[category]?.levels?.[level]?.count || 0;
             const amount = item.categories[category]?.levels?.[level]?.amount || 0;
             rowData.push(count.toString(), amount.toString());
           });
         });
-        
-        // 添加总计数据
         rowData.push(item.total_count.toString(), item.total_amount.toString());
         return rowData;
       });
-      
-      // 创建工作簿
+
       const workbook = XLSX.utils.book_new();
-      
-      // 创建多行表头数据
-      const headerData = [
-        firstRowHeaders,
-        secondRowHeaders,
-        thirdRowHeaders,
-        ...excelData
-      ];
-      
-      // 创建工作表
+      const headerData = [firstRowHeaders, secondRowHeaders, thirdRowHeaders, ...excelData];
       const worksheet = XLSX.utils.aoa_to_sheet(headerData);
-      
-      // 设置列宽
       worksheet['!cols'] = colWidths;
-      
-      // 设置合并单元格
-      if (merges.length > 0) {
-        worksheet['!merges'] = merges;
-      }
-      
-      // 添加工作表到工作簿
+      if (merges.length > 0) worksheet['!merges'] = merges;
+
       XLSX.utils.book_append_sheet(workbook, worksheet, '参保数据汇总');
-      
-      // 生成Excel文件并下载
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
-      // 生成文件名（包含当前日期）
-      const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-      const filename = `${currentYear}年参保数据汇总表_${dateStr}.xlsx`;
-      
+
+      const filename = `${currentYear}年参保数据汇总表_${new Date().getTime()}.xlsx`;
       saveAs(blob, filename);
       messageApi.success('导出成功');
     } catch (error) {
       console.error('导出失败:', error);
-      messageApi.error('导出失败: ' + (error as Error).message);
+      messageApi.error('导出失败');
     } finally {
       setExportLoading(false);
     }
   };
 
-  // 初始化
   useEffect(() => {
     fetchYears();
   }, []);
@@ -298,15 +239,11 @@ const InsuranceSummaryPage: React.FC = () => {
       },
     ];
 
-    // 使用categories_levels_mapping来生成列，确保显示所有配置的类别-档次组合
     categoriesLevelsMapping.forEach(categoryMapping => {
       const { category, levels: categoryLevels } = categoryMapping;
-      
-      // 为每个类别创建子列
       const categoryChildren: ColumnsType<any> = [];
-      
+
       categoryLevels.forEach(level => {
-        // 为每个档次创建子列组
         categoryChildren.push({
           title: level,
           key: `${category}_${level}`,
@@ -331,7 +268,6 @@ const InsuranceSummaryPage: React.FC = () => {
         });
       });
 
-      // 添加类别列组
       baseColumns.push({
         title: category,
         children: categoryChildren,
@@ -339,7 +275,6 @@ const InsuranceSummaryPage: React.FC = () => {
       });
     });
 
-    // 添加合计列
     baseColumns.push({
       title: '总计',
       children: [
@@ -367,61 +302,67 @@ const InsuranceSummaryPage: React.FC = () => {
 
   return (
     <PageContainer>
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col span={4}>
+          <Card size="small">
+            <Form layout="vertical">
+              <Form.Item label="年度" style={{ marginBottom: 0 }}>
+                <Select
+                  value={currentYear}
+                  onChange={setCurrentYear}
+                  style={{ width: '100%' }}
+                >
+                  {years.sort((a, b) => b - a).map(year => (
+                    <Option key={year} value={year}>{year}年</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
+        {statistics && (
+          <>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="总记录数"
+                  value={statistics.total}
+                  valueStyle={{ color: '#595959', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="正确数据"
+                  value={statistics.matched_count}
+                  valueStyle={{ color: '#52c41a', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="待匹配数量"
+                  value={statistics.unmatched_data_count}
+                  valueStyle={{ color: '#1677ff', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="疑点数据"
+                  value={statistics.unmatched_count}
+                  valueStyle={{ color: '#ff4d4f', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+          </>
+        )}
+      </Row>
+
       <Card>
-        {/* 年份选择和统计信息 */}
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={6}>
-            <Form.Item label="选择年份">
-              <Select
-                value={currentYear}
-                onChange={setCurrentYear}
-                style={{ width: '100%' }}
-              >
-                {years.map(year => (
-                  <Option key={year} value={year}>{year}年</Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={18}>
-            {statistics && (
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Statistic
-                    title="总记录数"
-                    value={statistics.total}
-                    valueStyle={{ color: '#000' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="正确数据"
-                    value={statistics.matched_count}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="待匹配数量"
-                    value={statistics.unmatched_data_count}
-                    valueStyle={{ color: '#1677ff' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="疑点数据"
-                    value={statistics.unmatched_count}
-                    valueStyle={{ color: '#ff4d4f' }}
-                  />
-                </Col>
-              </Row>
-            )}
-          </Col>
-        </Row>
-
-        <Divider />
-
-        {/* 操作按钮 */}
         <div style={{ marginBottom: 16, textAlign: 'right' }}>
           <Space>
             {access.canReadInsuranceSummary && (
@@ -446,7 +387,6 @@ const InsuranceSummaryPage: React.FC = () => {
           </Space>
         </div>
 
-        {/* 参保汇总表格 */}
         <Card title={`${currentYear}年参保数据汇总表`} size="small">
           <Table
             columns={generateColumns()}
@@ -455,67 +395,59 @@ const InsuranceSummaryPage: React.FC = () => {
             loading={loading}
             pagination={false}
             scroll={{ x: 'max-content' }}
-                         summary={() => {
-               const summaryCells = [];
-               let cellIndex = 1;
-               
-               // 添加镇街列
-               summaryCells.push(
-                 <Table.Summary.Cell key="total" index={0}>合计</Table.Summary.Cell>
-               );
-               
-              //  使用categories_levels_mapping来生成汇总行，确保与列结构一致
-               categoriesLevelsMapping.forEach(categoryMapping => {
-                 const { category, levels: categoryLevels } = categoryMapping;
-                 
-                 // 为每个配置的档次添加合计单元格（人数和金额）
-                 categoryLevels.forEach(level => {
-                   const levelCount = summaryData.reduce((sum, item) => {
-                     const count = item.categories[category]?.levels?.[level]?.count || 0;
-                     return sum + (typeof count === 'number' ? count : 0);
-                   }, 0);
-                   const levelAmount = summaryData.reduce((sum, item) => {
-                     const amount = item.categories[category]?.levels?.[level]?.amount || 0;
-                     return sum + (typeof amount === 'number' ? amount : parseFloat(amount) || 0);
-                   }, 0);
-                   
-                   // 人数单元格
-                   summaryCells.push(
-                     <Table.Summary.Cell key={`${category}_${level}_count`} index={cellIndex++} align="right">
-                       {levelCount.toLocaleString()}
-                     </Table.Summary.Cell>
-                   );
-                   // 金额单元格
-                   summaryCells.push(
-                     <Table.Summary.Cell key={`${category}_${level}_amount`} index={cellIndex++} align="right">
-                       ¥{levelAmount.toLocaleString()}
-                     </Table.Summary.Cell>
-                   );
-                 });
-               });
-               
-               // 添加总计列
-               summaryCells.push(
-                 <Table.Summary.Cell key="total_count" index={cellIndex++} align="right">
-                   {totalCount.toLocaleString()}
-                 </Table.Summary.Cell>
-               );
-               summaryCells.push(
-                 <Table.Summary.Cell key="total_amount" index={cellIndex++} align="right">
-                   ¥{totalAmount.toLocaleString()}
-                 </Table.Summary.Cell>
-               );
-               
-               return (
-                 <Table.Summary.Row style={{ fontWeight: 'bold', backgroundColor: '#fafafa' }}>
-                   {summaryCells}
-                 </Table.Summary.Row>
-               );
-             }}
+            summary={() => {
+              const summaryCells = [];
+              let cellIndex = 1;
+
+              summaryCells.push(
+                <Table.Summary.Cell key="total" index={0}>合计</Table.Summary.Cell>
+              );
+
+              categoriesLevelsMapping.forEach(categoryMapping => {
+                const { category, levels: categoryLevels } = categoryMapping;
+                categoryLevels.forEach(level => {
+                  const levelCount = summaryData.reduce((sum, item) => {
+                    const count = item.categories[category]?.levels?.[level]?.count || 0;
+                    return sum + count;
+                  }, 0);
+                  const levelAmount = summaryData.reduce((sum, item) => {
+                    const amount = item.categories[category]?.levels?.[level]?.amount || 0;
+                    return sum + amount;
+                  }, 0);
+
+                  summaryCells.push(
+                    <Table.Summary.Cell key={`${category}_${level}_count`} index={cellIndex++} align="right">
+                      {levelCount.toLocaleString()}
+                    </Table.Summary.Cell>
+                  );
+                  summaryCells.push(
+                    <Table.Summary.Cell key={`${category}_${level}_amount`} index={cellIndex++} align="right">
+                      ¥{levelAmount.toLocaleString()}
+                    </Table.Summary.Cell>
+                  );
+                });
+              });
+
+              summaryCells.push(
+                <Table.Summary.Cell key="total_count" index={cellIndex++} align="right">
+                  {totalCount.toLocaleString()}
+                </Table.Summary.Cell>
+              );
+              summaryCells.push(
+                <Table.Summary.Cell key="total_amount" index={cellIndex++} align="right">
+                  ¥{totalAmount.toLocaleString()}
+                </Table.Summary.Cell>
+              );
+
+              return (
+                <Table.Summary.Row style={{ fontWeight: 'bold', backgroundColor: '#fafafa' }}>
+                  {summaryCells}
+                </Table.Summary.Row>
+              );
+            }}
           />
         </Card>
 
-        {/* 说明信息 */}
         <div style={{ marginTop: 16, padding: 16, backgroundColor: '#f6f8fa', borderRadius: 6 }}>
           <Text type="secondary">
             <strong>说明：</strong>
@@ -536,4 +468,4 @@ export default () => (
   <App>
     <InsuranceSummaryPage />
   </App>
-); 
+);

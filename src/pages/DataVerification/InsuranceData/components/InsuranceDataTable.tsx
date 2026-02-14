@@ -112,13 +112,13 @@ const InsuranceDataTable: React.FC<InsuranceDataTableProps> = ({ onDataChange })
       title: '代缴金额',
       dataIndex: 'payment_amount',
       key: 'payment_amount',
-      render: (amount: number) => `¥${amount.toFixed(2)}`,
+      render: (amount: number) => `¥${Number(amount || 0).toFixed(2)}`,
     },
     {
       title: '个人实缴金额',
       dataIndex: 'personal_amount',
       key: 'personal_amount',
-      render: (amount: number) => `¥${amount.toFixed(2)}`,
+      render: (amount: number) => `¥${Number(amount || 0).toFixed(2)}`,
     },
   ];
 

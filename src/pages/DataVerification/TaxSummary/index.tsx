@@ -10,28 +10,23 @@ import {
   Statistic,
   Row,
   Col,
-  message,
   App,
   Typography,
-  Divider,
-  Tooltip,
 } from 'antd';
 import { useAccess } from '@umijs/max';
 import {
   DownloadOutlined,
   ReloadOutlined,
-  FileExcelOutlined,
-  BarChartOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { 
-  getYears, 
+import {
+  getYears,
   getStatistics,
   type StatisticsResult,
 } from '@/services/insuranceData';
 import { getTaxSummary, exportTaxSummary } from '@/services/taxSummary';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 interface TaxSummaryData {
@@ -41,17 +36,11 @@ interface TaxSummaryData {
   percentage?: number;
 }
 
-interface TaxSummaryResponse {
-  data: TaxSummaryData[];
-  total_count: number;
-  total_amount: number;
-  year: number;
-}
 
 const TaxSummaryPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const access = useAccess();
-  
+
   // 状态管理
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [years, setYears] = useState<number[]>([]);
@@ -94,13 +83,13 @@ const TaxSummaryPage: React.FC = () => {
       if (response.code === 0) {
         const data = response.data.data;
         const total = response.data.total_amount;
-        
+
         // 计算百分比
         const dataWithPercentage = data.map((item: TaxSummaryData) => ({
           ...item,
           percentage: total > 0 ? (item.amount / total * 100) : 0
         }));
-        
+
         setTaxSummaryData(dataWithPercentage);
         setTotalCount(response.data.total_count);
         setTotalAmount(response.data.total_amount);
@@ -121,16 +110,14 @@ const TaxSummaryPage: React.FC = () => {
     try {
       const response = await exportTaxSummary(currentYear);
       if (response.code === 0) {
-        // 解码base64内容
         const binaryString = atob(response.data.content);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        
-        // 创建下载链接
-        const blob = new Blob([bytes], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+
+        const blob = new Blob([bytes], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -140,7 +127,7 @@ const TaxSummaryPage: React.FC = () => {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
+
         messageApi.success('导出成功');
       } else {
         messageApi.error(response.message || '导出失败');
@@ -198,62 +185,67 @@ const TaxSummaryPage: React.FC = () => {
 
   return (
     <PageContainer>
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col span={4}>
+          <Card size="small">
+            <Form layout="vertical">
+              <Form.Item label="年度" style={{ marginBottom: 0 }}>
+                <Select
+                  value={currentYear}
+                  onChange={setCurrentYear}
+                  style={{ width: '100%' }}
+                >
+                  {years.sort((a, b) => b - a).map(year => (
+                    <Option key={year} value={year}>{year}年</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
+        {statistics && (
+          <>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="总记录数"
+                  value={statistics.total}
+                  valueStyle={{ color: '#595959', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="正确数据"
+                  value={statistics.matched_count}
+                  valueStyle={{ color: '#52c41a', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="待匹配数量"
+                  value={statistics.unmatched_data_count}
+                  valueStyle={{ color: '#1677ff', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic
+                  title="疑点数据"
+                  value={statistics.unmatched_count}
+                  valueStyle={{ color: '#ff4d4f', fontSize: '18px' }}
+                />
+              </Card>
+            </Col>
+          </>
+        )}
+      </Row>
+
       <Card>
-        {/* 年份选择和统计信息 */}
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          <Col span={6}>
-            <Form.Item label="选择年份">
-              <Select
-                value={currentYear}
-                onChange={setCurrentYear}
-                style={{ width: '100%' }}
-              >
-                {years.map(year => (
-                  <Option key={year} value={year}>{year}年</Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={18}>
-            {statistics && (
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Statistic
-                    title="总记录数"
-                    value={statistics.total}
-                    valueStyle={{ color: '#000' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="正确数据"
-                    value={statistics.matched_count}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="待匹配数量"
-                    value={statistics.unmatched_data_count}
-                    valueStyle={{ color: '#1677ff' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="疑点数据"
-                    value={statistics.unmatched_count}
-                    valueStyle={{ color: '#ff4d4f' }}
-                  />
-                </Col>
-              </Row>
-            )}
-          </Col>
-        </Row>
-
-        <Divider />
-
-        
-        {/* 操作按钮 */}
         <div style={{ marginBottom: 16, textAlign: 'right' }}>
           <Space>
             {access.canReadTaxSummary && (
@@ -278,7 +270,6 @@ const TaxSummaryPage: React.FC = () => {
           </Space>
         </div>
 
-        {/* 税务汇总表格 */}
         <Card title={`${currentYear}年税务代缴汇总表`} size="small">
           <Table
             columns={columns}
@@ -302,7 +293,6 @@ const TaxSummaryPage: React.FC = () => {
           />
         </Card>
 
-        {/* 说明信息 */}
         <div style={{ marginTop: 16, padding: 16, backgroundColor: '#f6f8fa', borderRadius: 6 }}>
           <Text type="secondary">
             <strong>说明：</strong>
@@ -323,4 +313,4 @@ export default () => (
   <App>
     <TaxSummaryPage />
   </App>
-); 
+);

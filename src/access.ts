@@ -22,8 +22,8 @@ export default (initialState: {
     if (!Array.isArray(permissions)) return false;
     try {
       return isAdmin ||
-             permissions.includes('*') ||
-             permissions.some((p: string) => p && typeof p === 'string' && p.startsWith(`${module}:`));
+        permissions.includes('*') ||
+        permissions.some((p: string) => p && typeof p === 'string' && p.startsWith(`${module}:`));
     } catch (error) {
       console.error('权限检查错误:', error);
       return false;
@@ -32,14 +32,14 @@ export default (initialState: {
 
   return {
     canSeeAdmin: !!(initialState && initialState.name !== 'dontHaveAccess'),
-    
+
     // 用户管理权限
     canReadUser: hasPermission('账户管理:查看'),
     canCreateUser: hasPermission('账户管理:创建'),
     canUpdateUser: hasPermission('账户管理:编辑'),
     canDeleteUser: hasPermission('账户管理:删除'),
     canAccessUser: hasModulePermission('账户管理'),
-    
+
     // 角色管理权限
     canReadRole: hasPermission('角色管理:查看'),
     canCreateRole: hasPermission('角色管理:创建'),
@@ -47,41 +47,41 @@ export default (initialState: {
     canDeleteRole: hasPermission('角色管理:删除'),
     canAccessRole: hasModulePermission('角色管理'),
     canAssignRole: hasPermission('角色管理:分配权限'),
-    
+
     // 权限管理权限
     canReadPermission: hasPermission('权限管理:查看'),
     canCreatePermission: hasPermission('权限管理:创建'),
     canUpdatePermission: hasPermission('权限管理:编辑'),
     canDeletePermission: hasPermission('权限管理:删除'),
     canAccessPermission: hasModulePermission('权限管理'),
-    
+
     // 仪表板权限 - 所有已登录用户都可以访问
     canAccessDashboard: !!currentUser,
-    
+
     // 业务配置权限
     canAccessBusinessConfig: hasModulePermission('业务配置'),
-    
+
     // 类别转换权限
     canReadCategoryConversion: hasPermission('类别转换配置:查看'),
     canCreateCategoryConversion: hasPermission('类别转换配置:创建'),
     canUpdateCategoryConversion: hasPermission('类别转换配置:编辑'),
     canDeleteCategoryConversion: hasPermission('类别转换配置:删除'),
     canAccessCategoryConversion: hasModulePermission('类别转换配置'),
-    
+
     // 参保档次权限
     canReadInsuranceLevel: hasPermission('参保档次配置:查看'),
     canCreateInsuranceLevel: hasPermission('参保档次配置:创建'),
     canUpdateInsuranceLevel: hasPermission('参保档次配置:编辑'),
     canDeleteInsuranceLevel: hasPermission('参保档次配置:删除'),
     canAccessInsuranceLevel: hasModulePermission('参保档次配置'),
-    
+
     // 参保资助档次配置权限
     canReadInsuranceLevelConfig: hasPermission('参保档次配置:查看'),
     canCreateInsuranceLevelConfig: hasPermission('参保档次配置:创建'),
     canUpdateInsuranceLevelConfig: hasPermission('参保档次配置:编辑'),
     canDeleteInsuranceLevelConfig: hasPermission('参保档次配置:删除'),
     canAccessInsuranceLevelConfig: hasModulePermission('参保档次配置'),
-    
+
     // 数据核实权限
     canReadInsuranceData: hasPermission('参保数据管理:查看'),
     canCreateInsuranceData: hasPermission('参保数据管理:创建'),
@@ -90,15 +90,15 @@ export default (initialState: {
     canExportInsuranceData: hasPermission('参保数据管理:导出'),
     canImportInsuranceData: hasPermission('参保数据管理:导入'),
     canAccessInsuranceData: hasModulePermission('参保数据管理'),
-    
+
     canReadIdentityVerification: hasPermission('身份信息核实:查看'),
     canExecuteIdentityVerification: hasPermission('身份信息核实:执行'),
     canAccessIdentityVerification: hasModulePermission('身份信息核实'),
-    
+
     canReadTaxSummary: hasPermission('税务数据汇总:查看'),
     canExportTaxSummary: hasPermission('税务数据汇总:导出'),
     canAccessTaxSummary: hasModulePermission('税务数据汇总'),
-    
+
     canReadInsuranceSummary: hasPermission('参保数据汇总:查看'),
     canExportInsuranceSummary: hasPermission('参保数据汇总:导出'),
     canAccessInsuranceSummary: hasModulePermission('参保数据汇总'),
@@ -114,14 +114,14 @@ export default (initialState: {
     canClearStatisticsSummary: hasPermission('统计汇总:清空数据'),
     canBatchDeleteStatisticsSummary: hasPermission('统计汇总:批量删除'),
     canAccessStatisticsSummary: hasModulePermission('统计汇总'),
-    
+
     // 救助报销权限
     canReadMedicalAssistance: hasPermission('救助报销:查看'),
     canCreateMedicalAssistance: hasPermission('救助报销:创建'),
     canUpdateMedicalAssistance: hasPermission('救助报销:编辑'),
     canDeleteMedicalAssistance: hasPermission('救助报销:删除'),
     canAccessMedicalAssistance: hasModulePermission('救助报销'),
-    
+
     // 患者管理权限
     canReadPatientManagement: hasPermission('患者管理:查看'),
     canCreatePatientManagement: hasPermission('患者管理:创建'),
@@ -129,7 +129,7 @@ export default (initialState: {
     canDeletePatientManagement: hasPermission('患者管理:删除'),
     canExportPatientManagement: hasPermission('患者管理:导出'),
     canAccessPatientManagement: hasModulePermission('患者管理'),
-    
+
     // 就诊记录权限
     canReadMedicalRecords: hasPermission('就诊记录:查看'),
     canCreateMedicalRecords: hasPermission('就诊记录:创建'),
@@ -138,7 +138,7 @@ export default (initialState: {
     canBatchDeleteMedicalRecords: hasPermission('就诊记录:批量删除'),
     canExportMedicalRecords: hasPermission('就诊记录:导出'),
     canAccessMedicalRecords: hasModulePermission('就诊记录'),
-    
+
     // 受理记录权限
     canReadReimbursementManagement: hasPermission('受理记录:查看'),
     canCreateReimbursementManagement: hasPermission('受理记录:创建'),
@@ -163,23 +163,15 @@ export default (initialState: {
     canTagOnlineSettlement: hasPermission('联网结算:标记'),
     canDeleteOnlineSettlement: hasPermission('联网结算:删除'),
     canAccessOnlineSettlement: hasModulePermission('联网结算'),
-    
-    // 非联网结算
-    canReadOfflineSettlement: hasPermission('非联网结算:查看'),
-    canImportOfflineSettlement: hasPermission('非联网结算:导入'),
-    canExportOfflineSettlement: hasPermission('非联网结算:导出'),
-    canTagOfflineSettlement: hasPermission('非联网结算:标记'),
-    canDeleteOfflineSettlement: hasPermission('非联网结算:删除'),
-    canAccessOfflineSettlement: hasModulePermission('非联网结算'),
-    
+
     // 结算台账
     canReadSettlementAccount: hasPermission('结算台账:查看'),
     canImportSettlementAccount: hasPermission('结算台账:导入'),
     canExportSettlementAccount: hasPermission('结算台账:导出'),
     canTagSettlementAccount: hasPermission('结算台账:标记'),
     canDeleteSettlementAccount: hasPermission('结算台账:删除'),
-    canAccessSettlementAccount: hasModulePermission('结算台账'),
-    
+    canAccessAccountSettlement: hasModulePermission('结算台账'),
+
 
 
     // 通用权限检查函数
