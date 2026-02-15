@@ -92,9 +92,25 @@
   justify-content: space-between;
 }
 
+.task-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .task-item-time {
   font-size: 12px;
   color: #999;
+}
+
+.task-expire-time {
+  font-size: 11px;
+  color: #52c41a; // 默认绿色表示在有效期内
+
+  &.expired {
+    color: #ff4d4f;
+    text-decoration: line-through;
+  }
 }
 
 /* 自定义进度条 - 内嵌百分比 */
