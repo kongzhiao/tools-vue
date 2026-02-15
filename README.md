@@ -112,3 +112,8 @@
   import { testConfig } from '@/config/test';
   console.log(testConfig);
   ```
+
+
+## 权限
+.umirc.ts         节点
+src\access.ts     节点权限

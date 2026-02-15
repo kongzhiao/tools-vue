@@ -52,6 +52,7 @@ interface Permission {
   component?: string;
   icon?: string;
   sort: number;
+  status: number;
   children?: Permission[];
 }
 
@@ -125,6 +126,7 @@ const Permission: React.FC = () => {
         type: 'operation',
         parent_id: 0,
         sort: 0,
+        status: 1,
       });
     }
     setModalVisible(true);
@@ -284,6 +286,17 @@ const Permission: React.FC = () => {
       ),
     },
     {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: number) => (
+        <Tag color={status === 1 ? 'green' : 'red'}>
+          {status === 1 ? '显示' : '不显示'}
+        </Tag>
+      ),
+    },
+    {
       title: '操作',
       key: 'action',
       width: 150,
@@ -434,6 +447,17 @@ const Permission: React.FC = () => {
                 label="排序"
               >
                 <Input type="number" placeholder="请输入排序" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="status"
+                label="状态"
+                valuePropName="checked"
+                getValueFromEvent={(val) => (val ? 1 : 0)}
+                getValueProps={(val) => ({ checked: val === 1 })}
+              >
+                <Switch checkedChildren="显示" unCheckedChildren="隐藏" />
               </Form.Item>
             </Col>
           </Row>

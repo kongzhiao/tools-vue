@@ -139,10 +139,10 @@ const Dashboard: React.FC = () => {
               <Col xs={24} sm={12}>
                 <p><Text strong>用户名：</Text>{currentUser?.username}</p>
                 <p><Text strong>昵称：</Text>{currentUser?.nickname}</p>
-                <p><Text strong>用户ID：</Text>{currentUser?.id}</p>
+                {/* <p><Text strong>用户ID：</Text>{currentUser?.id}</p> */}
               </Col>
               <Col xs={24} sm={12}>
-                <p><Text strong>权限数量：</Text>{currentUser?.permissions?.length || 0}</p>
+                {/* <p><Text strong>权限数量：</Text>{currentUser?.permissions?.length || 0}</p> */}
                 <p><Text strong>登录时间：</Text>{dayjs().format('YYYY-MM-DD HH:mm:ss')}</p>
                 <p><Text strong>在线状态：</Text><Tag color="green">在线</Tag></p>
               </Col>
