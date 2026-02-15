@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from 'react';
 import { Drawer, Tag, Progress, Button, Space, Tooltip, message } from 'antd';
 import { ReloadOutlined, DownloadOutlined, CloseOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { getTaskList, getTaskCount, TaskItem } from '@/services/task';
 import { getConfig } from '@/config';
 import './index.less';
@@ -116,20 +117,22 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
 
     // 处理下载
     const handleDownload = (record: TaskItem) => {
-        if (!record.file_url) {
-            message.warning('文件不存在');
-            return;
-        }
-        // 构建完整的下载 URL
-        const downloadUrl = `${config.apiBaseUrl}${record.file_url}`;
+        // 构建完整的下载 URL (使用 UUID 中转)
+        const downloadUrl = `${config.apiBaseUrl}/api/download?uuid=${record.uuid}`;
         window.open(downloadUrl, '_blank');
     };
 
     // 渲染单个任务卡片
     const renderTaskItem = (record: TaskItem) => {
         const statusConfig = STATUS_CONFIG[record.status] || { color: 'default', text: record.status };
-        const canDownload = record.status === 'completed' && record.file_url;
+        const isCompleted = record.status === 'completed';
         const percent = record.progress || 0;
+
+        // 计算有效期（url_at + 7天）
+        const urlAt = record.url_at || record.updated_at;
+        const expiredTime = record.url_at ? dayjs(record.url_at).add(7, 'days') : null;
+        const isExpired = expiredTime ? dayjs().isAfter(expiredTime) : false;
+        const canDownload = isCompleted && !isExpired;
 
         // 进度显示：未到100%显示1位小数，100%显示整数
         const percentText = percent >= 100 ? '100%' : `${percent.toFixed(1)}%`;
@@ -158,8 +161,15 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
                     </div>
                 </div>
                 <div className="task-item-footer">
-                    <span className="task-item-time">{record.created_at}</span>
-                    <Tooltip title={canDownload ? "下载文件" : "文件未就绪"}>
+                    <div className="task-item-info">
+                        <span className="task-item-time">{record.created_at}</span>
+                        {isCompleted && expiredTime && (
+                            <span className={`task-expire-time ${isExpired ? 'expired' : ''}`}>
+                                {isExpired ? '已过期' : `有效期至: ${expiredTime.format('MM-DD HH:mm')}`}
+                            </span>
+                        )}
+                    </div>
+                    <Tooltip title={isExpired ? "文件已过期(7天)" : canDownload ? "下载文件" : "文件未就绪"}>
                         <Button
                             type="link"
                             size="small"
@@ -168,7 +178,7 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
                             onClick={() => canDownload && handleDownload(record)}
                             style={{ color: canDownload ? '#1890ff' : '#d9d9d9' }}
                         >
-                            下载
+                            {isExpired ? '已过期' : '下载'}
                         </Button>
                     </Tooltip>
                 </div>
