@@ -10,7 +10,7 @@ const config = {
   API_BASE_URL: NODE_ENV === 'test' 
     ? 'http://47.109.34.185:9510' 
     : NODE_ENV === 'production'
-    ? 'https://cqjj.24do.com/api'
+    ? 'https://jjyf.24do.com/api'
     : 'http://localhost:9501',
   API_TIMEOUT: 60000, // 统一设置为60秒，匹配后端OCR服务超时
   ENABLE_MOCK: NODE_ENV === 'test' ? false : NODE_ENV === 'production' ? false : true,

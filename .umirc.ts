@@ -20,7 +20,7 @@ export default defineConfig({
         ? 'http://47.109.34.185:9510'
         : process.env.NODE_ENV === 'production'
           ? 'https://api.example.com'
-          : 'http://localhost:9501',
+          : 'http://localhost:9502',
       changeOrigin: true,
       secure: false,
     },
@@ -31,7 +31,7 @@ export default defineConfig({
     // 移除API_BASE_URL的define配置，避免与我们的配置系统冲突
   },
   layout: {
-    title: '共享救助信息服务平台2',
+    title: '优抚救助信息服务平台',
   },
   // 简化配置，移除有问题的 chainWebpack
   jsMinifier: 'terser',

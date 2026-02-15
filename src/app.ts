@@ -154,7 +154,7 @@ export async function getInitialState(): Promise<{
 }
 
 export const layout = ({ initialState }: { initialState: any }) => {
-  const appName = initialState?.initData?.app || '共享救助信息服务平台3';
+  const appName = initialState?.initData?.app || '优抚救助信息服务平台';
 
   return {
     title: appName,

@@ -48,8 +48,8 @@ export function getConfig(): AppConfig {
     apiBaseUrl: effectiveEnv === 'test' 
       ? 'http://47.109.34.185:9510' 
       : effectiveEnv === 'production'
-      ? 'https://cqjj.24do.com/api'
-      : 'http://127.0.0.1:9501',
+      ? 'https://jjyf.24do.com/api'
+      : 'http://localhost:9501',
     apiTimeout: effectiveEnv === 'test' ? 60000 : effectiveEnv === 'production' ? 60000 : 60000, // 统一设置为60秒，匹配后端OCR服务超时
     enableMock: effectiveEnv === 'test' ? false : effectiveEnv === 'production' ? false : true,
     nodeEnv: effectiveEnv,

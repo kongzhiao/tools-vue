@@ -1,7 +1,7 @@
 // 应用常量配置
 export const APP_CONFIG = {
   // 应用信息
-  APP_NAME: '共享救助信息服务平台',
+  APP_NAME: '优抚救助信息服务平台',
   APP_VERSION: '1.0.0',
 
   // 分页配置

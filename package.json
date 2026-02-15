@@ -1,7 +1,7 @@
 {
   "name": "insurance-data-conversion-platform",
   "private": true,
-  "description": "共享救助信息服务平台",
+  "description": "优抚救助信息服务平台",
   "author": "karry <zchuanyun@gmail.com>",
   "scripts": {
     "build": "cross-env NODE_ENV=development node build-env.js && max build",
