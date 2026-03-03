@@ -31,7 +31,7 @@ export default defineConfig({
     // 移除API_BASE_URL的define配置，避免与我们的配置系统冲突
   },
   layout: {
-    title: '优抚救助信息服务平台',
+    title: '江津区优抚医疗补助信息服务平台',
   },
   // 简化配置，移除有问题的 chainWebpack
   jsMinifier: 'terser',

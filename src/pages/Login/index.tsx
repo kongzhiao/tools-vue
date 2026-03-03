@@ -16,7 +16,7 @@ const Login: React.FC = () => {
   const config = getConfig();
 
   useEffect(() => {
-    const appName = initialState?.initData?.app || '优抚救助信息服务平台';
+    const appName = initialState?.initData?.app || '江津区优抚医疗补助信息服务平台';
     document.title = `${appName} - 登录`;
   }, [initialState]);
 
@@ -52,7 +52,7 @@ const Login: React.FC = () => {
     }
   };
 
-  const appName = initialState?.initData?.app || '优抚救助信息服务平台';
+  const appName = initialState?.initData?.app || '江津区优抚医疗补助信息服务平台';
 
   return (
     <div className={styles.container}>
