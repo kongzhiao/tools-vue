@@ -257,20 +257,28 @@ const YfSettlementOnlinePage: React.FC = () => {
   };
 
   // 重新计算
-  const handleRecalculate = async () => {
-    const values = form.getFieldsValue();
-    setLoading(true);
-    try {
-      const res = await recalculateYfSettlements(values);
-      if (res.code === 0) {
-        message.success(res.message || '重算任务已提交');
-        fetchData(currentPage, pageSize);
-      }
-    } catch (error) {
-      message.error('重算失败');
-    } finally {
-      setLoading(false);
-    }
+  const handleRecalculate = () => {
+    Modal.confirm({
+      title: '重新计算确认',
+      content: '确定要重新计算当前筛选条件下的所有结算数据吗？该操作将根据最新的配置重新计算补助金额，可能需要较长时间。',
+      okText: '确定重算',
+      cancelText: '取消',
+      onOk: async () => {
+        const values = form.getFieldsValue();
+        setLoading(true);
+        try {
+          const res = await recalculateYfSettlements(values);
+          if (res.code === 0) {
+            message.success(res.message || '重算任务已提交');
+            fetchData(currentPage, pageSize);
+          }
+        } catch (error) {
+          message.error('重算失败');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   // 单条删除
