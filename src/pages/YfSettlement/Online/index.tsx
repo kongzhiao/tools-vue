@@ -260,7 +260,7 @@ const YfSettlementOnlinePage: React.FC = () => {
   const handleRecalculate = () => {
     Modal.confirm({
       title: '重新计算确认',
-      content: '确定要重新计算当前筛选条件下的所有结算数据吗？该操作将根据最新的配置重新计算补助金额，可能需要较长时间。',
+      content: '确定要重新计算吗？将根据最新的配置重新计算补助金额，可能需要较长时间。',
       okText: '确定重算',
       cancelText: '取消',
       onOk: async () => {
