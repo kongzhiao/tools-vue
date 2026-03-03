@@ -45,15 +45,22 @@ const User: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const [current, setCurrent] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
   const [form] = Form.useForm();
   const [roleForm] = Form.useForm();
 
   // 获取用户列表
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = current, limit = pageSize) => {
     setLoading(true);
     try {
       const response = await request('/api/users', {
         method: 'GET',
+        params: {
+          page,
+          limit,
+        },
       });
       if (response.code === 0) {
         // 后端返回的数据结构是 {data: {list: [...], total: 2, page: 1, limit: 10}}
@@ -64,6 +71,9 @@ const User: React.FC = () => {
           roles: Array.isArray(user.roles) ? user.roles : [],
         }));
         setUsers(processedUsers);
+        setTotal(response.data?.total || 0);
+        setCurrent(response.data?.page || page);
+        setPageSize(response.data?.limit || limit);
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
@@ -97,7 +107,7 @@ const User: React.FC = () => {
       if (editingUser && (!values.password || values.password.trim() === '')) {
         delete values.password;
       }
-      
+
       if (editingUser) {
         await request(`/api/users/${editingUser.id}`, {
           method: 'PUT',
@@ -136,7 +146,7 @@ const User: React.FC = () => {
   // 处理角色分配
   const handleAssignRoles = async (values: any) => {
     if (!selectedUser) return;
-    
+
     try {
       await request(`/api/users/${selectedUser.id}/roles`, {
         method: 'POST',
@@ -204,9 +214,9 @@ const User: React.FC = () => {
       render: (_: any, record: User) => (
         <Space size="middle">
           {access.canUpdateUser && (
-            <Button 
-              type="link" 
-              icon={<EditOutlined />} 
+            <Button
+              type="link"
+              icon={<EditOutlined />}
               onClick={() => {
                 setEditingUser(record);
                 // 编辑时不设置密码字段，保持为空
@@ -219,13 +229,13 @@ const User: React.FC = () => {
             </Button>
           )}
           {access.canUpdateUser && (
-            <Button 
-              type="link" 
-              icon={<SettingOutlined />} 
+            <Button
+              type="link"
+              icon={<SettingOutlined />}
               onClick={() => {
                 setSelectedUser(record);
-                const roleIds = record.roles && Array.isArray(record.roles) 
-                  ? record.roles.map(role => role.id) 
+                const roleIds = record.roles && Array.isArray(record.roles)
+                  ? record.roles.map(role => role.id)
                   : [];
                 roleForm.setFieldsValue({ role_ids: roleIds });
                 setRoleModalVisible(true);
@@ -275,9 +285,15 @@ const User: React.FC = () => {
         rowKey="id"
         loading={loading}
         pagination={{
+          current,
+          pageSize,
+          total,
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 条记录`,
+          onChange: (page, size) => {
+            fetchUsers(page, size);
+          },
         }}
         locale={{
           emptyText: '暂无数据',
@@ -321,8 +337,8 @@ const User: React.FC = () => {
             ]}
             extra={editingUser ? "不设置密码则保持不变" : undefined}
           >
-            <Input.Password 
-              placeholder={editingUser ? "不设置密码则保持不变" : "请输入密码"} 
+            <Input.Password
+              placeholder={editingUser ? "不设置密码则保持不变" : "请输入密码"}
             />
           </Form.Item>
 
