@@ -454,6 +454,13 @@ const Records: React.FC = () => {
       render: (text) => text ? dayjs(text).format('YYYY-MM-DD') : '-',
     },
     {
+      title: '结算时间',
+      dataIndex: 'settlement_date',
+      key: 'settlement_date',
+      width: 120,
+      render: (text) => text ? dayjs(text).format('YYYY-MM-DD') : '-',
+    },
+    {
       title: '总费用',
       dataIndex: 'total_cost',
       key: 'total_cost',
@@ -989,8 +996,8 @@ const Records: React.FC = () => {
             </Col>
             <Col span={8}>
               <Form.Item
-                name="critical_illness_reimbursement_amount"
-                label="重疾报销金额"
+                name="!critical_illness_reimbursement_amount"
+                !label="重疾报销金额"
               >
                 <InputNumber
                   style={{ width: '100%' }}
