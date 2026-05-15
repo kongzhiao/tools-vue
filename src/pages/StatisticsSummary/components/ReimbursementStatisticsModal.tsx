@@ -301,8 +301,8 @@ const ReimbursementStatisticsModal: React.FC<ReimbursementStatisticsModalProps> 
         const totalBasic = projectStats.summary.basic_medical_reimbursement 
                           + projectStats.summary.serious_illness_reimbursement 
                           + projectStats.summary.large_amount_reimbursement;
-        const totalAssistance = projectStats.summary.medical_assistance_amount;
-        const totalTilt = projectStats.summary.tilt_assistance;
+        const totalAssistance = projectStats.summary.medical_assistance_amount; // 医疗救助
+        const totalTilt = projectStats.summary.tilt_assistance; // 倾斜救助
         
         const totalRatio = totalEligible === 0 ? '0.00%' : 
           `${((totalBasic + totalAssistance + totalTilt) / totalEligible * 100).toFixed(2)}%`;
@@ -312,7 +312,7 @@ const ReimbursementStatisticsModal: React.FC<ReimbursementStatisticsModalProps> 
         const comprehensiveRatio = totalCost === 0 ? '0.00%' : 
           `${((totalBasic + totalAssistance + totalTilt) / totalCost * 100).toFixed(2)}%`;
 
-        // 计算救助金额合计
+        // 合计救助金额
         const totalSerious = totalAssistance + totalTilt;
 
         // 按照表头顺序返回数据数组
@@ -346,9 +346,9 @@ const ReimbursementStatisticsModal: React.FC<ReimbursementStatisticsModalProps> 
           formatMoney(projectStats.summary.total_cost), // 费用总额
           formatMoney(projectStats.summary.eligible_reimbursement), // 符合医保报销金额
           formatMoney(totalBasic), // 基本医保报销金额（含大病大额）
-          formatMoney(totalSerious), // 合计大病报销金额
           formatMoney(totalAssistance), // 医疗救助
           formatMoney(totalTilt), // 倾斜救助
+          formatMoney(totalSerious), // 合计大病报销金额
           totalRatio, // 符合政策范围内报销比例
           comprehensiveRatio, // 综合报销率
         ];
