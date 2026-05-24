@@ -104,6 +104,12 @@ export default defineConfig({
           component: './Permission',
           access: 'canAccessPermission',
         },
+        {
+          name: '镇街管理',
+          path: 'towns',
+          component: './Town',
+          access: 'canAccessTown',
+        },
       ],
     },
     {
@@ -195,6 +201,25 @@ export default defineConfig({
           path: 'patients',
           component: './MedicalAssistance/Patients',
           access: 'canAccessPatientManagement',
+        },
+      ],
+    },
+    {
+      name: '未救助台账',
+      path: '/unrescued',
+      icon: 'FileSearchOutlined',
+      routes: [
+        {
+          name: '未救助明细',
+          path: 'records',
+          component: './Unrescued/Records',
+          access: 'canAccessUnrescuedRecords',
+        },
+        {
+          name: '重大疾病编码',
+          path: 'disease-configs',
+          component: './Unrescued/DiseaseConfigs',
+          access: 'canAccessDiseaseConfig',
         },
       ],
     },

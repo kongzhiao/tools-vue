@@ -55,6 +55,14 @@ export default (initialState: {
     canDeletePermission: hasPermission('权限管理:删除'),
     canAccessPermission: hasModulePermission('权限管理'),
 
+    // 镇街管理权限
+    canReadTown: hasPermission('镇街管理:查看'),
+    canCreateTown: hasPermission('镇街管理:创建'),
+    canUpdateTown: hasPermission('镇街管理:编辑'),
+    canDeleteTown: hasPermission('镇街管理:删除'),
+    canImportTown: hasPermission('镇街管理:导入'),
+    canAccessTown: hasModulePermission('镇街管理'),
+
     // 仪表板权限 - 所有已登录用户都可以访问
     canAccessDashboard: !!currentUser,
 
@@ -165,6 +173,17 @@ export default (initialState: {
     canDeleteOnlineSettlement: hasPermission('联网结算:删除'),
     canRecalculateOnlineSettlement: hasPermission('联网结算:重算'),
     canAccessOnlineSettlement: hasModulePermission('联网结算'),
+
+    // 未救助台账权限
+    canAccessUnrescued: hasModulePermission('未救助台账'),
+    canReadUnrescuedRecords: hasPermission('未救助明细:查看'),
+    canAccessUnrescuedRecords: hasModulePermission('未救助明细'),
+    canReadDiseaseConfig: hasPermission('重大疾病编码:查看'),
+    canCreateDiseaseConfig: hasPermission('重大疾病编码:创建'),
+    canUpdateDiseaseConfig: hasPermission('重大疾病编码:编辑'),
+    canDeleteDiseaseConfig: hasPermission('重大疾病编码:删除'),
+    canImportDiseaseConfig: hasPermission('重大疾病编码:导入'),
+    canAccessDiseaseConfig: hasModulePermission('重大疾病编码'),
 
 
 

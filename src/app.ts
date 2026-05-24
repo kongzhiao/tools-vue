@@ -54,6 +54,8 @@ export async function getInitialState(): Promise<{
     id: number;
     username: string;
     nickname: string;
+    town_id?: number;
+    town_name?: string;
     permissions: string[];
   };
   menus?: any[];
@@ -133,6 +135,8 @@ export async function getInitialState(): Promise<{
           id: userData.id || 0,
           username: userData.username || '',
           nickname: userData.nickname || '',
+          town_id: userData.town_id,
+          town_name: userData.town_name,
           permissions: Array.isArray(userData.permissions) ? userData.permissions : [],
         },
         menus,

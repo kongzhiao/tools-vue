@@ -25,6 +25,8 @@ interface User {
   id: number;
   username: string;
   nickname: string;
+  town_id?: number;
+  town?: { id: number; name: string };
   created_at: string;
   updated_at: string;
   roles: Array<{ id: number; name: string; description: string; }>;
@@ -40,6 +42,7 @@ const User: React.FC = () => {
   const access = useAccess();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [towns, setTowns] = useState<Array<{ id: number; name: string }>>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [roleModalVisible, setRoleModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -97,6 +100,20 @@ const User: React.FC = () => {
       console.error('获取角色列表失败:', error);
       message.error('获取角色列表失败');
       setRoles([]);
+    }
+  };
+
+  const fetchTowns = async () => {
+    try {
+      const response = await request('/api/towns/options', {
+        method: 'GET',
+      });
+      if (response.code === 0) {
+        setTowns(response.data || []);
+      }
+    } catch (error) {
+      console.error('获取镇街列表失败:', error);
+      setTowns([]);
     }
   };
 
@@ -165,6 +182,7 @@ const User: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     fetchRoles();
+    fetchTowns();
   }, []);
 
   const columns = [
@@ -200,6 +218,12 @@ const User: React.FC = () => {
           </div>
         );
       },
+    },
+    {
+      title: '所属镇街',
+      dataIndex: 'town',
+      key: 'town',
+      render: (_: any, record: User) => record.town?.name || '全局',
     },
     {
       title: '创建时间',
@@ -339,6 +363,17 @@ const User: React.FC = () => {
           >
             <Input.Password
               placeholder={editingUser ? "不设置密码则保持不变" : "请输入密码"}
+            />
+          </Form.Item>
+
+          <Form.Item name="town_id" label="所属镇街">
+            <Select
+              allowClear
+              placeholder="不选择则为全局账号"
+              options={towns.map(town => ({
+                label: town.name,
+                value: town.id,
+              }))}
             />
           </Form.Item>
 
