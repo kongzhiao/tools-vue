@@ -16,8 +16,10 @@ import {
   EditOutlined,
   DeleteOutlined,
   SettingOutlined,
+  SearchOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
-import { request, useAccess } from '@umijs/max';
+import { request, useAccess, useLocation } from '@umijs/max';
 
 const { Option } = Select;
 
@@ -40,6 +42,7 @@ interface Role {
 
 const User: React.FC = () => {
   const access = useAccess();
+  const location = useLocation();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [towns, setTowns] = useState<Array<{ id: number; name: string }>>([]);
@@ -51,11 +54,16 @@ const User: React.FC = () => {
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [filters, setFilters] = useState<any>({
+    keyword: '',
+    role_id: undefined,
+    town_id: undefined,
+  });
   const [form] = Form.useForm();
   const [roleForm] = Form.useForm();
 
   // 获取用户列表
-  const fetchUsers = async (page = current, limit = pageSize) => {
+  const fetchUsers = async (page = current, limit = pageSize, customFilters = filters) => {
     setLoading(true);
     try {
       const response = await request('/api/users', {
@@ -63,6 +71,7 @@ const User: React.FC = () => {
         params: {
           page,
           limit,
+          ...customFilters,
         },
       });
       if (response.code === 0) {
@@ -180,10 +189,24 @@ const User: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
     fetchRoles();
     fetchTowns();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const townId = params.get('town_id');
+    const nextFilters = {
+      keyword: '',
+      role_id: undefined,
+      town_id: undefined as number | undefined,
+    };
+    if (townId !== null) {
+      nextFilters.town_id = townId === '0' ? 0 : Number(townId);
+    }
+    setFilters(nextFilters);
+    fetchUsers(1, pageSize, nextFilters);
+  }, [location.search]);
 
   const columns = [
     {
@@ -287,7 +310,39 @@ const User: React.FC = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Input
+          allowClear
+          placeholder="用户名/昵称"
+          style={{ width: 220 }}
+          value={filters.keyword}
+          onChange={e => setFilters({ ...filters, keyword: e.target.value })}
+          onPressEnter={() => fetchUsers(1, pageSize)}
+        />
+        <Select
+          allowClear
+          placeholder="角色"
+          style={{ width: 180 }}
+          value={filters.role_id}
+          onChange={value => setFilters({ ...filters, role_id: value })}
+          options={roles.map(role => ({ label: role.name, value: role.id }))}
+        />
+        <Select
+          allowClear
+          placeholder="镇街"
+          style={{ width: 180 }}
+          value={filters.town_id}
+          onChange={value => setFilters({ ...filters, town_id: value })}
+          options={[
+            { label: '全局账号', value: 0 },
+            ...towns.map(town => ({ label: town.name, value: town.id })),
+          ]}
+        />
+        <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchUsers(1, pageSize)}>查询</Button>
+        <Button icon={<ReloadOutlined />} loading={loading} onClick={() => {
+          setFilters({ keyword: '', role_id: undefined, town_id: undefined });
+          setTimeout(() => fetchUsers(1, pageSize), 0);
+        }}>重置</Button>
         {access.canCreateUser && (
           <Button
             type="primary"
@@ -301,7 +356,7 @@ const User: React.FC = () => {
             创建用户
           </Button>
         )}
-      </div>
+      </Space>
 
       <Table
         columns={columns}

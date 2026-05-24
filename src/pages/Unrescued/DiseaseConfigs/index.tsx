@@ -137,8 +137,8 @@ const DiseaseConfigs: React.FC = () => {
   };
 
   const columns = [
-    { title: '病种编码', dataIndex: 'disease_code', key: 'disease_code', width: 180 },
-    { title: '病种名称', dataIndex: 'disease_name', key: 'disease_name' },
+    { title: '病种编码', dataIndex: 'disease_code', key: 'disease_code', width: 150 },
+    { title: '病种名称', dataIndex: 'disease_name', key: 'disease_name', width: 220, ellipsis: true },
     {
       title: '状态',
       dataIndex: 'status',
@@ -146,7 +146,7 @@ const DiseaseConfigs: React.FC = () => {
       width: 100,
       render: (status: number) => <Tag color={status === 1 ? 'green' : 'default'}>{status === 1 ? '启用' : '停用'}</Tag>,
     },
-    { title: '来源批次', dataIndex: 'source_batch', key: 'source_batch', width: 160, render: (v: string) => v || '-' },
+    // { title: '来源批次', dataIndex: 'source_batch', key: 'source_batch', width: 160, render: (v: string) => v || '-' },
     { title: '备注', dataIndex: 'remark', key: 'remark', render: (v: string) => v || '-' },
     {
       title: '创建时间',

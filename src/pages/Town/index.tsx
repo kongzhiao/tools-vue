@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Button, Checkbox, Dropdown, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Upload } from 'antd';
 import { CloudUploadOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, SettingOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
-import { useAccess } from '@umijs/max';
+import { history, useAccess } from '@umijs/max';
 import { createTown, deleteTown, getTowns, updateTown } from '@/services/town';
 
 interface TownItem {
@@ -12,6 +12,7 @@ interface TownItem {
   status: number;
   sort: number;
   remark?: string;
+  users_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +34,7 @@ const Town: React.FC = () => {
     'name',
     'code',
     'status',
+    'users_count',
     'sort',
     'remark',
     'created_at',
@@ -84,8 +86,9 @@ const Town: React.FC = () => {
 
   const columnOptions = [
     { label: '镇街名称', value: 'name', disabled: true },
-    { label: '编码', value: 'code' },
+    // { label: '编码', value: 'code' },
     { label: '状态', value: 'status' },
+    { label: '账户数量', value: 'users_count' },
     { label: '排序', value: 'sort' },
     { label: '备注', value: 'remark' },
     { label: '创建时间', value: 'created_at' },
@@ -94,8 +97,8 @@ const Town: React.FC = () => {
   ];
 
   const columns = [
-    { title: '镇街名称', dataIndex: 'name', key: 'name', width: 180, ellipsis: true },
-    { title: '编码', dataIndex: 'code', key: 'code', render: (v: string) => v || '-' },
+    { title: '镇街名称', dataIndex: 'name', key: 'name', width: 200, ellipsis: true },
+    // { title: '编码', dataIndex: 'code', key: 'code', render: (v: string) => v || '-' },
     {
       title: '状态',
       dataIndex: 'status',
@@ -103,8 +106,23 @@ const Town: React.FC = () => {
       width: 100,
       render: (status: number) => <Tag color={status === 1 ? 'green' : 'default'}>{status === 1 ? '启用' : '停用'}</Tag>,
     },
+    {
+      title: '账户数量',
+      dataIndex: 'users_count',
+      key: 'users_count',
+      width: 110,
+      render: (count: number, record: TownItem) => (
+        <Button
+          type="link"
+          style={{ padding: 0 }}
+          onClick={() => history.push(`/user-management/accounts?town_id=${record.id}`)}
+        >
+          {count || 0}
+        </Button>
+      ),
+    },
     { title: '排序', dataIndex: 'sort', key: 'sort', width: 90 },
-    { title: '备注', dataIndex: 'remark', key: 'remark', render: (v: string) => v || '-' },
+    { title: '备注', dataIndex: 'remark', key: 'remark', width: 120, ellipsis: true, render: (v: string) => v || '-' },
     {
       title: '创建时间',
       dataIndex: 'created_at',

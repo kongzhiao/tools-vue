@@ -177,6 +177,13 @@ export default (initialState: {
     // 未救助台账权限
     canAccessUnrescued: hasModulePermission('未救助台账'),
     canReadUnrescuedRecords: hasPermission('未救助明细:查看'),
+    canImportUnrescuedRecords: hasPermission('未救助明细:导入'),
+    canWashUnrescuedRecords: hasPermission('未救助明细:清洗'),
+    canDistributeUnrescuedRecords: hasPermission('未救助明细:下放'),
+    canNotifyUnrescuedRecords: hasPermission('未救助明细:通知'),
+    canFillUnrescuedAccounts: hasPermission('未救助明细:账户回填'),
+    canMarkUnrescuedReimbursement: hasPermission('未救助明细:报销标记'),
+    canExportUnrescuedRecords: hasPermission('未救助明细:导出'),
     canAccessUnrescuedRecords: hasModulePermission('未救助明细'),
     canReadDiseaseConfig: hasPermission('重大疾病编码:查看'),
     canCreateDiseaseConfig: hasPermission('重大疾病编码:创建'),
