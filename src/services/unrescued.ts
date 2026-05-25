@@ -110,6 +110,13 @@ export async function notifyUnrescuedRecords(data: any) {
   });
 }
 
+export async function unnotifyUnrescuedRecords(data: any) {
+  return request('/api/unrescued/records/unnotify', {
+    method: 'POST',
+    data,
+  });
+}
+
 export async function fillUnrescuedAccounts(data: any) {
   return request('/api/unrescued/records/accounts', {
     method: 'POST',

@@ -5,6 +5,7 @@ import {
   Card,
   Collapse,
   DatePicker,
+  Dropdown,
   Form,
   Input,
   message,
@@ -16,15 +17,20 @@ import {
   Table,
   Tag,
   Tooltip,
+  Typography,
   Upload,
 } from 'antd';
 import {
   BankOutlined,
   CheckCircleOutlined,
   CloudUploadOutlined,
+  CopyOutlined,
   DownloadOutlined,
+  EditOutlined,
   InboxOutlined,
+  MoreOutlined,
   ReloadOutlined,
+  RollbackOutlined,
   SendOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
@@ -47,6 +53,7 @@ import {
   notifyUnrescuedRecords,
   receiveUnrescuedRecords,
   saveUnrescuedWashConfig,
+  unnotifyUnrescuedRecords,
 } from '@/services/unrescued';
 
 const statusColors: Record<string, string> = {
@@ -58,6 +65,9 @@ const statusColors: Record<string, string> = {
   已接收: 'purple',
   已通知: 'green',
 };
+
+const allStatusOptions = ['待处理', '无救助金额', '不通知', '拟通知', '已下放', '已接收', '已通知'];
+const townStatusOptions = ['已下放', '已接收', '已通知'];
 
 const templateMap: Record<string, string> = {
   attachment1: '导入-附件1：未救助明细模板.csv',
@@ -96,22 +106,96 @@ const statCards = [
   { key: 'paid', label: '已报销', color: '#52c41a' },
 ];
 
+const townStatCards = [
+  { key: 'received', label: '已接收', color: '#722ed1' },
+  { key: 'notified', label: '已通知', color: '#52c41a' },
+];
+
 const cardStyle: React.CSSProperties = {
   borderRadius: 6,
   border: '1px solid #edf0f5',
   boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
 };
 
+const toolbarStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  flexWrap: 'wrap',
+};
+
+const toolbarSideStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  flexWrap: 'wrap',
+};
+
+const toolbarDividerStyle: React.CSSProperties = {
+  width: 1,
+  height: 22,
+  background: '#edf0f5',
+};
+
+const copyToClipboard = async (text: string) => {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    message.success('已复制');
+  } catch (error) {
+    message.error('复制失败');
+  }
+};
+
+const EllipsisText: React.FC<{ value?: any; maxWidth?: number | string }> = ({ value, maxWidth = '100%' }) => {
+  const text = value === null || value === undefined || value === '' ? '' : String(value);
+  if (!text) return <>-</>;
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth, width: '100%', minWidth: 0, verticalAlign: 'middle' }}>
+      <Tooltip title="复制">
+        <Button
+          type="text"
+          size="small"
+          icon={<CopyOutlined />}
+          onClick={event => {
+            event.stopPropagation();
+            copyToClipboard(text);
+          }}
+          style={{ width: 18, height: 18, padding: 0, flex: '0 0 18px' }}
+        />
+      </Tooltip>
+      <Typography.Text
+        ellipsis={{ tooltip: text }}
+        style={{ display: 'inline-block', flex: 1, minWidth: 0, maxWidth: '100%', margin: 0 }}
+      >
+        {text}
+      </Typography.Text>
+    </span>
+  );
+};
+
 const fixedWashRules = [
-  { code: 'medical_category_keep', name: '医疗类别', field: 'medical_category', action: 'keep', operator: 'in', values: ['普通住院', '住院双通道外购药', '儿童两病住院'], remark: '门诊救助', enabled: false },
-  { code: 'hospital_keyword_exclude', name: '医药机构名称', field: 'hospital_name', action: 'exclude', operator: 'contains', values: ['诊所', '药店', '卫生室'], remark: '对象类别不符', enabled: false },
+  { code: 'medical_category_keep', name: '医疗类别', field: 'medical_category', action: 'keep', operator: 'in', values: [], remark: '门诊救助', enabled: false },
+  { code: 'hospital_keyword_exclude', name: '医药机构名称', field: 'hospital_name', action: 'exclude', operator: 'contains', values: [], remark: '对象类别不符', enabled: false },
   { code: 'pool_equals_policy', name: '统筹报销金额', field: 'pool_fund_pay', action: 'exclude', operator: '=', compare_field: 'policy_fee', remark: '无救助金额', enabled: false },
   { code: 'large_equals_policy', name: '大额报销', field: 'large_amount_pay', action: 'exclude', operator: '=', compare_field: 'policy_fee', remark: '无救助金额', enabled: false },
   { code: 'serious_equals_policy', name: '大病报销', field: 'serious_illness_pay', action: 'exclude', operator: '=', compare_field: 'policy_fee', remark: '无救助金额', enabled: false },
   { code: 'normal_rescue_limit', name: '已使用普通住院救助金额', field: 'used_normal_rescue', action: 'exclude', operator: '=', value: '6000.00', remark: '无救助额度', enabled: false },
   { code: 'major_rescue_limit', name: '已使用重特大疾病救助金额', field: 'used_major_rescue', action: 'exclude', operator: '=', value: '100000.00', remark: '无救助额度', enabled: false },
   { code: 'large_fee_rescue_limit', name: '已使用大额费用住院救助', field: 'used_large_fee_rescue', action: 'exclude', operator: '=', value: '60000.00', remark: '无救助额度', enabled: false },
-  { code: 'identity_exclude', name: '身份', field: 'priority_identity', action: 'exclude', operator: 'contains', values: ['返贫致贫人口', '低保边缘家庭成员', '因病致贫重病患者', '脱贫不稳定户', '边缘易致贫户', '突发严重困难户'], remark: '对象类别不符', enabled: false },
+  { code: 'identity_exclude', name: '身份', field: 'priority_identity', action: 'exclude', operator: 'contains', values: [], remark: '对象类别不符', enabled: false },
 ];
 
 const mergeWashRules = (rules: any[] = []) => {
@@ -132,12 +216,16 @@ const UnrescuedRecords: React.FC = () => {
   const [stats, setStats] = useState<any>({});
   const [towns, setTowns] = useState<any[]>([]);
   const [washRules, setWashRules] = useState<any[]>([]);
+  const [savedWashRules, setSavedWashRules] = useState<any[]>([]);
+  const [washEditing, setWashEditing] = useState(false);
   const [washOptions, setWashOptions] = useState<any>({ medical_categories: [], identities: [] });
   const [importVisible, setImportVisible] = useState(false);
   const [importType, setImportType] = useState<'attachment1' | 'attachment2'>('attachment1');
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [accountVisible, setAccountVisible] = useState(false);
+  const [distributeVisible, setDistributeVisible] = useState(false);
+  const [distributeTownId, setDistributeTownId] = useState<number | undefined>();
   const receivePromptRef = useRef(false);
   const [filters, setFilters] = useState<any>({
     settlement_period: dayjs().format('YYYYMM'),
@@ -146,9 +234,37 @@ const UnrescuedRecords: React.FC = () => {
   const [accountForm] = Form.useForm();
 
   const isTownUser = Number(currentUser?.town_id || 0) > 0;
-  const availableTowns = isTownUser
-    ? towns.filter((item: any) => Number(item.id) === Number(currentUser?.town_id))
-    : towns;
+  const statusOptions = isTownUser ? townStatusOptions : allStatusOptions;
+  const townNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    towns.forEach((item: any) => map.set(Number(item.id), item.name));
+    if (isTownUser && currentUser?.town_id && currentUser?.town_name) {
+      map.set(Number(currentUser.town_id), currentUser.town_name);
+    }
+    return map;
+  }, [towns, isTownUser, currentUser?.town_id, currentUser?.town_name]);
+  const availableTowns = useMemo(() => {
+    if (!isTownUser) {
+      return towns;
+    }
+    const matched = towns.filter((item: any) => Number(item.id) === Number(currentUser?.town_id));
+    if (matched.length > 0) {
+      return matched;
+    }
+    return currentUser?.town_id
+      ? [{ id: Number(currentUser.town_id), name: currentUser?.town_name || `镇街ID ${currentUser.town_id}` }]
+      : [];
+  }, [towns, isTownUser, currentUser?.town_id, currentUser?.town_name]);
+  const identityOptions = useMemo(() => {
+    const values = new Set<string>();
+    (washOptions.identities || []).forEach((value: string) => {
+      if (value) values.add(value);
+    });
+    data.forEach((item: any) => {
+      if (item.priority_identity) values.add(item.priority_identity);
+    });
+    return Array.from(values).map(value => ({ label: value, value }));
+  }, [washOptions.identities, data]);
 
   const effectiveFilters = () => ({
     ...filters,
@@ -182,10 +298,13 @@ const UnrescuedRecords: React.FC = () => {
       const townRes = await getTownOptions();
       if (townRes.code === 0) setTowns(townRes.data || []);
       const washRes = await getUnrescuedWashConfig();
-      if (washRes.code === 0) setWashRules(mergeWashRules(washRes.data?.data || []));
-      if (washRes.code !== 0) setWashRules(mergeWashRules([]));
+      const rules = washRes.code === 0 ? mergeWashRules(washRes.data?.data || []) : mergeWashRules([]);
+      setWashRules(rules);
+      setSavedWashRules(rules);
     } catch (error) {
-      setWashRules(mergeWashRules([]));
+      const rules = mergeWashRules([]);
+      setWashRules(rules);
+      setSavedWashRules(rules);
       message.warning('基础配置加载失败');
     }
   };
@@ -200,7 +319,11 @@ const UnrescuedRecords: React.FC = () => {
 
   useEffect(() => {
     if (isTownUser && currentUser?.town_id) {
-      setFilters((prev: any) => ({ ...prev, town_id: Number(currentUser.town_id) }));
+      setFilters((prev: any) => ({
+        ...prev,
+        town_id: Number(currentUser.town_id),
+        status: prev.status && !townStatusOptions.includes(prev.status) ? undefined : prev.status,
+      }));
     }
   }, [isTownUser, currentUser?.town_id]);
 
@@ -217,6 +340,7 @@ const UnrescuedRecords: React.FC = () => {
       cancelButtonProps: { style: { display: 'none' } },
       maskClosable: false,
       keyboard: false,
+      closable: false,
       onOk: async () => {
         await handleReceive();
       },
@@ -272,6 +396,16 @@ const UnrescuedRecords: React.FC = () => {
   };
 
   const selectedIds = () => selectedRowKeys.map(id => Number(id));
+  const selectedRows = useMemo(
+    () => data.filter(item => selectedRowKeys.includes(item.id)),
+    [data, selectedRowKeys],
+  );
+  const canFillAccountSelection = selectedRows.length > 0 && selectedRows.every(item => ['已接收', '已通知'].includes(item.status));
+  const canNotifySelection = selectedRows.length > 0 && selectedRows.every(item => item.status === '已接收');
+  const canUnnotifySelection = selectedRows.length > 0 && selectedRows.every(item => item.status === '已通知');
+  const canOperateNotify = isTownUser || access.canNotifyUnrescuedRecords;
+  const canOperateFillAccounts = isTownUser || access.canFillUnrescuedAccounts;
+  const visibleStatCards = isTownUser ? townStatCards : statCards;
 
   const requireSelection = () => {
     if (selectedRowKeys.length === 0) {
@@ -285,20 +419,56 @@ const UnrescuedRecords: React.FC = () => {
     const res = await receiveUnrescuedRecords({ settlement_period: filters.settlement_period });
     if (res.code === 0) {
       message.success('接收成功');
-      fetchData();
+      setStats((prev: any) => ({ ...prev, pendingReceive: 0 }));
+      await fetchData();
     } else {
       message.error(res.message || res.msg || '接收失败');
     }
   };
 
-  const handleNotify = async () => {
-    if (!requireSelection()) return;
-    const res = await notifyUnrescuedRecords({ ids: selectedIds() });
+  const handleNotify = async (ids?: number[]) => {
+    const targetIds = ids && ids.length > 0 ? ids : selectedIds();
+    if (targetIds.length === 0 && !requireSelection()) return;
+    const res = await notifyUnrescuedRecords({ ids: targetIds });
     if (res.code === 0) {
       message.success('已标记通知');
       setSelectedRowKeys([]);
       fetchData();
+    } else {
+      message.error(res.message || res.msg || '标记通知失败');
     }
+  };
+
+  const handleUnnotify = async (ids?: number[]) => {
+    const targetIds = ids && ids.length > 0 ? ids : selectedIds();
+    if (targetIds.length === 0 && !requireSelection()) return;
+    const res = await unnotifyUnrescuedRecords({ ids: targetIds });
+    if (res.code === 0) {
+      message.success('已撤销通知');
+      setSelectedRowKeys([]);
+      fetchData();
+    } else {
+      message.error(res.message || res.msg || '撤销通知失败');
+    }
+  };
+
+  const openAccountModal = (rows?: any[]) => {
+    const targetRows = rows && rows.length > 0 ? rows : selectedRows;
+    if (rows && rows.length > 0) {
+      setSelectedRowKeys(rows.map(item => item.id));
+    }
+
+    if (targetRows.length === 1) {
+      const row = targetRows[0];
+      accountForm.setFieldsValue({
+        bank_name: row.bank_name || '',
+        bank_account_name: row.bank_account_name || row.name || '',
+        bank_account_no: row.bank_account_no || '',
+      });
+    } else {
+      accountForm.resetFields();
+    }
+    setAccountVisible(true);
   };
 
   const handleAccount = async (values: any) => {
@@ -307,8 +477,11 @@ const UnrescuedRecords: React.FC = () => {
     if (res.code === 0) {
       message.success('账户已回填');
       setAccountVisible(false);
+      setSelectedRowKeys([]);
       accountForm.resetFields();
       fetchData();
+    } else {
+      message.error(res.message || res.msg || '账户回填失败');
     }
   };
 
@@ -341,22 +514,39 @@ const UnrescuedRecords: React.FC = () => {
     const res = await saveUnrescuedWashConfig({ name: '未救助清洗规则', rules: washRules });
     if (res.code === 0) {
       message.success('规则已保存');
-      setWashRules(res.data?.data || washRules);
+      const nextRules = res.data?.data || washRules;
+      setWashRules(nextRules);
+      setSavedWashRules(nextRules);
+      setWashEditing(false);
     }
   };
 
+  const handleCancelWashEdit = () => {
+    setWashRules(savedWashRules);
+    setWashEditing(false);
+  };
+
   const handleDistribute = async () => {
-    if (!filters.settlement_period || !filters.town_id) {
-      message.warning('请选择清算期和镇街');
+    if (!filters.settlement_period || !distributeTownId) {
+      message.warning('请选择清算期和下放镇街');
       return;
     }
     const res = await distributeUnrescuedRecords({
       settlement_period: filters.settlement_period,
-      town_id: filters.town_id,
+      town_id: distributeTownId,
     });
     if (res.code === 0) {
-      message.success(`下放成功：${res.data?.affected_rows || 0} 条`);
+      const skipped = Number(res.data?.skipped_workflow_rows || 0);
+      message.success(
+        skipped > 0
+          ? `下放成功：${res.data?.affected_rows || 0} 条，${skipped} 条已下放/已接收/已通知数据未重复处理`
+          : `下放成功：${res.data?.affected_rows || 0} 条`,
+      );
+      setDistributeVisible(false);
+      setDistributeTownId(undefined);
       fetchData();
+    } else {
+      message.error(res.message || res.msg || '下放失败');
     }
   };
 
@@ -370,71 +560,168 @@ const UnrescuedRecords: React.FC = () => {
   };
 
   const updateRule = (index: number, patch: any) => {
+    if (!washEditing) return;
     setWashRules(prev => prev.map((item, idx) => (idx === index ? { ...item, ...patch } : item)));
   };
 
-  const hasEnabledWashRules = washRules.some(rule => rule.enabled === true);
+  const canExecuteWash = !washEditing && savedWashRules.some(rule => rule.enabled === true);
+  const washExecuteTip = washEditing ? '请先保存或取消清洗规则编辑' : '请配置并启用至少一条清洗规则';
 
-  const exportButtons = useMemo(() => {
+  const confirmExport = (type: string) => {
+    const item = exportMap[type];
+    if (!item) return;
+    const count = Number(stats[item.countKey] || 0);
+    if (count <= 0) {
+      message.warning(item.disabledText);
+      return;
+    }
+
+    Modal.confirm({
+      title: `确定${item.label}吗？`,
+      content: `当前筛选条件下将导出 ${count} 条记录。`,
+      okText: '确定导出',
+      cancelText: '取消',
+      onOk: () => doExport(type),
+    });
+  };
+
+  const confirmBatchAction = (title: string, onOk: () => void) => {
+    Modal.confirm({
+      title,
+      okText: '确定',
+      cancelText: '取消',
+      onOk,
+    });
+  };
+
+  const exportMenuItems = useMemo(() => {
     return Object.entries(exportMap).map(([type, item]) => {
       const count = Number(stats[item.countKey] || 0);
-      const button = (
-        <Button icon={<DownloadOutlined />} disabled={count <= 0}>
-          {item.label}
-        </Button>
-      );
-
-      if (count <= 0) {
-        return (
-          <Tooltip key={type} title={item.disabledText}>
-            {button}
-          </Tooltip>
-        );
-      }
-
       return (
-        <Popconfirm
-          key={type}
-          title={`确定${item.label}吗？`}
-          description={`当前筛选条件下将导出 ${count} 条记录。`}
-          onConfirm={() => doExport(type)}
-          okText="确定导出"
-          cancelText="取消"
-        >
-          {button}
-        </Popconfirm>
+        {
+          key: type,
+          label: count > 0 ? `${item.label}（${count}）` : item.label,
+          disabled: count <= 0,
+          icon: <DownloadOutlined />,
+        }
       );
     });
   }, [stats, filters]);
 
+  const batchMenuItems = useMemo(() => {
+    const items: any[] = [];
+    if (canOperateNotify) {
+      items.push(
+        {
+          key: 'notify',
+          label: '标记 已通知',
+          icon: <CheckCircleOutlined />,
+          disabled: !canNotifySelection,
+        },
+        {
+          key: 'unnotify',
+          label: '撤销 通知',
+          icon: <RollbackOutlined />,
+          disabled: !canUnnotifySelection,
+        },
+      );
+    }
+    if (canOperateFillAccounts) {
+      items.push({
+        key: 'account',
+        label: '补填 银行账户',
+        icon: <BankOutlined />,
+        disabled: !canFillAccountSelection,
+      });
+    }
+    if (!isTownUser && access.canMarkUnrescuedReimbursement) {
+      if (items.length > 0) {
+        items.push({ type: 'divider' });
+      }
+      items.push(
+        {
+          key: 'paid',
+          label: '标记 已报销',
+          disabled: !selectedRowKeys.length,
+        },
+        {
+          key: 'unpaid',
+          label: '标记 未报销',
+          disabled: !selectedRowKeys.length,
+        },
+      );
+    }
+    return items;
+  }, [
+    canOperateNotify,
+    canOperateFillAccounts,
+    canNotifySelection,
+    canUnnotifySelection,
+    canFillAccountSelection,
+    isTownUser,
+    access.canMarkUnrescuedReimbursement,
+    selectedRowKeys.length,
+  ]);
+
+  const handleBatchMenuClick = ({ key }: any) => {
+    if (key === 'notify') {
+      confirmBatchAction('确定将所选记录标记为已通知吗？', () => handleNotify());
+      return;
+    }
+    if (key === 'unnotify') {
+      confirmBatchAction('确定将所选已通知记录撤销为已接收吗？', () => handleUnnotify());
+      return;
+    }
+    if (key === 'account') {
+      openAccountModal();
+      return;
+    }
+    if (key === 'paid') {
+      confirmBatchAction('确定标记所选记录为已报销吗？', () => handleReimbursement('已报销'));
+      return;
+    }
+    if (key === 'unpaid') {
+      confirmBatchAction('确定标记所选记录为未报销吗？', () => handleReimbursement('未报销'));
+    }
+  };
+
   const columns = [
-    { title: '清算期', dataIndex: 'settlement_period', width: 100},
-    { title: '序号', dataIndex: 'sequence_no', width: 90, ellipsis: true },
-    { title: '姓名', dataIndex: 'name', width: 100, ellipsis: true, render: (v: string) => v || '-' },
-    { title: '身份证号', dataIndex: 'id_card', width: 190, ellipsis: true },
+    { title: '清算期', dataIndex: 'settlement_period', width: 120, render: (v: string) => <EllipsisText value={v} maxWidth={84} /> },
+    { title: '序号', dataIndex: 'sequence_no', width: 110, render: (v: string) => <EllipsisText value={v} maxWidth={72} /> },
+    { title: '姓名', dataIndex: 'name', width: 150, render: (v: string) => <EllipsisText value={v} maxWidth={82} /> },
+    { title: '身份证号', dataIndex: 'id_card', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={172} /> },
     {
       title: '镇街',
       dataIndex: 'street_town',
       width: 150,
-      ellipsis: true,
-      render: (v: string, record: any) => (
-        <Space size={4}>
-          <span>{v || '-'}</span>
-          {v && Number(record.town_id || 0) === 0 && <Tag color="red">未匹配</Tag>}
-        </Space>
-      ),
+      render: (v: string, record: any) => {
+        const townId = Number(record.town_id || 0);
+        const matchedTownName = townId > 0 ? townNameById.get(townId) : '';
+        const displayTown = v || matchedTownName || '-';
+        return (
+          <Space size={4} wrap style={{ maxWidth: 132 }}>
+            <EllipsisText value={record.village ? `${displayTown} / ${record.village}` : displayTown} maxWidth={v && townId === 0 ? 76 : 128} />
+            {v && townId === 0 && <Tag color="red">未匹配</Tag>}
+          </Space>
+        );
+      },
     },
-    { title: '身份', dataIndex: 'priority_identity', width: 170, ellipsis: true, render: (v: string) => v || '-' },
-    { title: '医疗类别', dataIndex: 'medical_category', width: 130, ellipsis: true },
-    { title: '医药机构', dataIndex: 'hospital_name', width: 220, ellipsis: true },
+    {
+      title: '身份',
+      dataIndex: 'priority_identity',
+      width: 190,
+      render: (v: string) => <EllipsisText value={v} maxWidth={172} />,
+    },
+    { title: '医疗类别', dataIndex: 'medical_category', width: 130, render: (v: string) => <EllipsisText value={v} maxWidth={112} /> },
+    { title: '医药机构', dataIndex: 'hospital_name', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={202} /> },
     { title: '政策范围费用', dataIndex: 'policy_fee', width: 120 },
     { title: '统筹报销', dataIndex: 'pool_fund_pay', width: 110 },
     { title: '大额报销', dataIndex: 'large_amount_pay', width: 110 },
     { title: '大病报销', dataIndex: 'serious_illness_pay', width: 110 },
     { title: '进入报销金额', dataIndex: 'calc_reimbursement_amount', width: 130 },
-    { title: '开户行', dataIndex: 'bank_name', width: 150, ellipsis: true , render: (v: string) => v || '-' },
-    { title: '户名', dataIndex: 'bank_account_name', width: 120, ellipsis: true , render: (v: string) => v || '-' },
-    { title: '账号录入', dataIndex: 'bank_account_no', width: 170, ellipsis: true , render: (v: string) => v || '-' },
+    { title: '开户行', dataIndex: 'bank_name', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={202} /> },
+    { title: '户名', dataIndex: 'bank_account_name', width: 140, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
+    { title: '账号录入', dataIndex: 'bank_account_no', width: 170, render: (v: string) => <EllipsisText value={v} maxWidth={152} /> },
     {
       title: '状态',
       dataIndex: 'status',
@@ -453,7 +740,57 @@ const UnrescuedRecords: React.FC = () => {
       width: 100,
       render: (v: string) => <Tag color={v === '已报销' ? 'green' : 'default'}>{v}</Tag>,
     },
-    { title: '备注', dataIndex: 'remark', width: 160, render: (v: string) => v || '-' },
+    { title: '备注', dataIndex: 'remark', width: 160, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
+    {
+      title: '操作',
+      key: 'action',
+      width: 230,
+      fixed: 'right' as const,
+      render: (_: any, record: any) => {
+        const canFill = ['已接收', '已通知'].includes(record.status);
+        const canNotify = record.status === '已接收';
+        const canUnnotify = record.status === '已通知';
+        const hasAction = (canOperateFillAccounts && canFill) || (canOperateNotify && (canNotify || canUnnotify));
+
+        if (!hasAction) {
+          return <span style={{ color: '#94a3b8' }}>-</span>;
+        }
+
+        return (
+          <Space size={2} wrap>
+            {canOperateFillAccounts && canFill && (
+              <Button type="link" size="small" icon={<BankOutlined />} onClick={() => openAccountModal([record])}>
+                补填资料
+              </Button>
+            )}
+            {canOperateNotify && canNotify && (
+              <Popconfirm
+                title="确定将该记录标记为已通知吗？"
+                onConfirm={() => handleNotify([record.id])}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button type="link" size="small" icon={<CheckCircleOutlined />}>
+                  已通知
+                </Button>
+              </Popconfirm>
+            )}
+            {canOperateNotify && canUnnotify && (
+              <Popconfirm
+                title="确定将该记录撤销为已接收吗？"
+                onConfirm={() => handleUnnotify([record.id])}
+                okText="确定撤销"
+                cancelText="取消"
+              >
+                <Button type="link" size="small" icon={<RollbackOutlined />}>
+                  撤销
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
+    },
   ];
 
   const washColumns = [
@@ -462,7 +799,12 @@ const UnrescuedRecords: React.FC = () => {
       dataIndex: 'enabled',
       width: 80,
       render: (v: boolean, _: any, index: number) => (
-        <Switch size="small" checked={v !== false} onChange={checked => updateRule(index, { enabled: checked })} />
+        <Switch
+          size="small"
+          checked={v !== false}
+          disabled={!washEditing}
+          onChange={checked => updateRule(index, { enabled: checked })}
+        />
       ),
     },
     { title: '规则项', dataIndex: 'name', width: 220 },
@@ -472,6 +814,7 @@ const UnrescuedRecords: React.FC = () => {
       render: (_: any, record: any, index: number) => (
         <Select
           style={{ width: 96 }}
+          disabled={!washEditing}
           value={record.action || (record.type === 'not_in' ? 'keep' : 'exclude')}
           onChange={value => updateRule(index, { action: value })}
           options={[
@@ -494,13 +837,16 @@ const UnrescuedRecords: React.FC = () => {
         if (isCategory || isIdentity) {
           const options = (isCategory ? washOptions.medical_categories : washOptions.identities)
             .map((value: string) => ({ label: value, value }));
+          const optionValues = new Set(options.map((item: any) => item.value));
+          const selectedValues = (record.values || []).filter((value: string) => optionValues.has(value));
           return (
             <Select
               mode="multiple"
               allowClear
-              placeholder={isCategory ? '选择医疗类别' : '选择身份类别'}
+              disabled={!washEditing}
+              placeholder={options.length ? (isCategory ? '选择医疗类别' : '选择身份类别') : '暂无业务筛选选项，请先导入数据'}
               style={{ width: '100%' }}
-              value={record.values || []}
+              value={selectedValues}
               options={options}
               onChange={values => updateRule(index, { operator: 'contains', values })}
             />
@@ -512,6 +858,7 @@ const UnrescuedRecords: React.FC = () => {
             <Space.Compact style={{ width: '100%' }}>
               <Select
                 style={{ width: 110 }}
+                disabled={!washEditing}
                 value={operator}
                 onChange={value => updateRule(index, { operator: value })}
                 options={[
@@ -519,12 +866,15 @@ const UnrescuedRecords: React.FC = () => {
                   { label: '不包含', value: 'not_contains' },
                 ]}
               />
-              <Input
-                value={(record.values || []).join('、')}
-                placeholder="多个关键字用顿号或逗号分隔"
-                onChange={e => updateRule(index, {
-                  values: e.target.value.split(/[、,，\n]/).map(item => item.trim()).filter(Boolean),
-                })}
+              <Select
+                mode="tags"
+                allowClear
+                disabled={!washEditing}
+                tokenSeparators={['、', ',', '，', '\n']}
+                style={{ width: '100%' }}
+                value={record.values || []}
+                placeholder="输入关键字后回车"
+                onChange={values => updateRule(index, { values })}
               />
             </Space.Compact>
           );
@@ -535,13 +885,14 @@ const UnrescuedRecords: React.FC = () => {
             <Space.Compact style={{ width: '100%' }}>
               <Select
                 style={{ width: 78 }}
+                disabled={!washEditing}
                 value={operator}
                 onChange={value => updateRule(index, { operator: value })}
                 options={['=', '>', '<', '>=', '<='].map(value => ({ label: value, value }))}
               />
               <Input
                 value={record.compare_field ? '医保政策范围费用' : record.value}
-                disabled={!!record.compare_field}
+                disabled={!washEditing || !!record.compare_field}
                 placeholder="数值"
                 onChange={e => updateRule(index, { value: e.target.value, compare_field: undefined })}
               />
@@ -557,6 +908,7 @@ const UnrescuedRecords: React.FC = () => {
       width: 240,
       render: (_: any, record: any, index: number) => (
         <Input
+          disabled={!washEditing}
           placeholder="命中剔除时写入备注"
           value={record.remark}
           onChange={e => updateRule(index, { remark: e.target.value })}
@@ -591,12 +943,14 @@ const UnrescuedRecords: React.FC = () => {
             onChange={value => setFilters({ ...filters, town_id: value })}
             options={availableTowns.map((item: any) => ({ label: item.name, value: item.id }))}
           />
-          <Input
+          <Select
             allowClear
+            showSearch
             placeholder="身份"
             style={{ width: 170 }}
             value={filters.priority_identity}
-            onChange={e => setFilters({ ...filters, priority_identity: e.target.value })}
+            onChange={value => setFilters({ ...filters, priority_identity: value })}
+            options={identityOptions}
           />
           <Select
             allowClear
@@ -604,7 +958,7 @@ const UnrescuedRecords: React.FC = () => {
             style={{ width: 130 }}
             value={filters.status}
             onChange={value => setFilters({ ...filters, status: value })}
-            options={['待处理', '无救助金额', '不通知', '拟通知', '已下放', '已接收', '已通知'].map(v => ({ label: v, value: v }))}
+            options={statusOptions.map(v => ({ label: v, value: v }))}
           />
           <Select
             allowClear
@@ -628,7 +982,7 @@ const UnrescuedRecords: React.FC = () => {
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 12 }}>
-        {statCards.map(item => (
+        {visibleStatCards.map(item => (
           <div key={item.key} style={{ ...cardStyle, background: '#fff', padding: '14px 16px' }}>
             <div style={{ color: '#64748b', fontSize: 13 }}>{item.label}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
@@ -640,53 +994,66 @@ const UnrescuedRecords: React.FC = () => {
       </div>
 
       <Card size="small" style={{ ...cardStyle, marginBottom: 12 }}>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
-          <Space wrap>
+        <div style={toolbarStyle}>
+          <div style={toolbarSideStyle}>
             {!isTownUser && access.canImportUnrescuedRecords && (
               <>
-                <Button icon={<CloudUploadOutlined />} onClick={() => openImport('attachment1')}>导入 未救助明细</Button>
-                <Button icon={<CloudUploadOutlined />} onClick={() => openImport('attachment2')}>导入 救助对象名单</Button>
+                <Button type="primary" icon={<CloudUploadOutlined />} onClick={() => openImport('attachment1')}>
+                  导入 未救助明细
+                </Button>
+                <Button icon={<CloudUploadOutlined />} onClick={() => openImport('attachment2')}>
+                  导入 救助对象名单
+                </Button>
+                <div style={toolbarDividerStyle} />
               </>
             )}
+
+            {!isTownUser && access.canDistributeUnrescuedRecords && (
+              <Button
+                icon={<SendOutlined />}
+                onClick={() => {
+                  setDistributeTownId(filters.town_id);
+                  setDistributeVisible(true);
+                }}
+              >
+                下放 镇街数据
+              </Button>
+            )}
+
             {!isTownUser && access.canWashUnrescuedRecords && (
-              hasEnabledWashRules ? (
+              canExecuteWash ? (
                 <Popconfirm title="确定按当前规则执行清洗吗？" onConfirm={handleWash} okText="确定" cancelText="取消">
                   <Button>执行 清洗规则</Button>
                 </Popconfirm>
               ) : (
-                <Tooltip title="请配置并启用至少一条清洗规则">
+                <Tooltip title={washExecuteTip}>
                   <Button disabled>执行 清洗规则</Button>
                 </Tooltip>
               )
             )}
-            {!isTownUser && access.canDistributeUnrescuedRecords && (
-              <Popconfirm title="确定下放当前清算期和镇街的未剔除数据吗？" onConfirm={handleDistribute} okText="确定" cancelText="取消">
-                <Button icon={<SendOutlined />}>下放 镇街数据</Button>
-              </Popconfirm>
+          </div>
+
+          <div style={toolbarSideStyle}>
+            {batchMenuItems.length > 0 && (
+              <Dropdown
+                menu={{ items: batchMenuItems, onClick: handleBatchMenuClick }}
+                trigger={['click']}
+              >
+                <Button icon={<MoreOutlined />}>
+                  批量操作{selectedRowKeys.length > 0 ? `（${selectedRowKeys.length}）` : ''}
+                </Button>
+              </Dropdown>
             )}
-          </Space>
-          <Space wrap>
-            {access.canNotifyUnrescuedRecords && (
-              <Popconfirm title="确定将所选记录标记为已通知吗？" onConfirm={handleNotify} okText="确定" cancelText="取消">
-                <Button disabled={!selectedRowKeys.length} icon={<CheckCircleOutlined />}>标记 已通知</Button>
-              </Popconfirm>
+            {!isTownUser && access.canExportUnrescuedRecords && (
+              <Dropdown
+                menu={{ items: exportMenuItems, onClick: ({ key }) => confirmExport(String(key)) }}
+                trigger={['click']}
+              >
+                <Button icon={<DownloadOutlined />}>导出</Button>
+              </Dropdown>
             )}
-            {access.canFillUnrescuedAccounts && (
-              <Button disabled={!selectedRowKeys.length} icon={<BankOutlined />} onClick={() => setAccountVisible(true)}>回填 银行账户</Button>
-            )}
-            {!isTownUser && access.canMarkUnrescuedReimbursement && (
-              <>
-                <Popconfirm title="确定标记所选记录为已报销吗？" onConfirm={() => handleReimbursement('已报销')} okText="确定" cancelText="取消">
-                  <Button disabled={!selectedRowKeys.length}>标记 已报销</Button>
-                </Popconfirm>
-                <Popconfirm title="确定标记所选记录为未报销吗？" onConfirm={() => handleReimbursement('未报销')} okText="确定" cancelText="取消">
-                  <Button disabled={!selectedRowKeys.length}>标记 未报销</Button>
-                </Popconfirm>
-              </>
-            )}
-            {!isTownUser && access.canExportUnrescuedRecords && exportButtons}
-          </Space>
-        </Space>
+          </div>
+        </div>
       </Card>
 
       {!isTownUser && access.canWashUnrescuedRecords && (
@@ -696,17 +1063,31 @@ const UnrescuedRecords: React.FC = () => {
             {
               key: 'wash-rules',
               label: '清洗规则配置',
-              extra: <Button size="small" onClick={event => {
-                event.stopPropagation();
-                handleSaveWash();
-              }}>保存清洗规则</Button>,
+              extra: washEditing ? (
+                <Space onClick={event => event.stopPropagation()}>
+                  <Button size="small" type="primary" onClick={handleSaveWash}>保存</Button>
+                  <Button size="small" onClick={handleCancelWashEdit}>取消</Button>
+                </Space>
+              ) : (
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={event => {
+                    event.stopPropagation();
+                    setSavedWashRules(washRules);
+                    setWashEditing(true);
+                  }}
+                >
+                  编辑
+                </Button>
+              ),
               children: (
                 <>
                   <Alert
-                    type="info"
+                    type={washEditing ? 'info' : 'warning'}
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message="固定规则项默认存在但未启用。医疗类别和身份选项来自通用筛选选项表及当前已导入明细。"
+                    message={washEditing ? '医疗类别和身份选项来自业务筛选表，可编辑规则后保存。' : '当前为只读状态，点击右上角“编辑”后可修改清洗规则。'}
                   />
                   <Table
                     rowKey="code"
@@ -728,7 +1109,7 @@ const UnrescuedRecords: React.FC = () => {
         loading={loading}
         columns={columns}
         dataSource={data}
-        scroll={{ x: 1900 }}
+        scroll={{ x: 2130 }}
         rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
         pagination={{
           current,
@@ -739,6 +1120,33 @@ const UnrescuedRecords: React.FC = () => {
           onChange: fetchData,
         }}
       />
+
+      <Modal
+        title="下放 镇街数据"
+        open={distributeVisible}
+        onCancel={() => setDistributeVisible(false)}
+        onOk={handleDistribute}
+        okText="确认下放"
+        cancelText="取消"
+      >
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Alert
+            type="info"
+            showIcon
+            message={`当前清算期：${filters.settlement_period || '-'}`}
+            description="仅下放所选清算期和镇街下状态为“拟通知”的未剔除数据；已下放、已接收、已通知的数据不会重复变更状态。"
+          />
+          <Select
+            showSearch
+            allowClear
+            placeholder="请选择下放镇街"
+            style={{ width: '100%' }}
+            value={distributeTownId}
+            onChange={value => setDistributeTownId(value)}
+            options={towns.map((item: any) => ({ label: item.name, value: item.id }))}
+          />
+        </Space>
+      </Modal>
 
       <Modal
         title={importType === 'attachment1' ? '导入 未救助明细' : '导入 救助对象名单'}

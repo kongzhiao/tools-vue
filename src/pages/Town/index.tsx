@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Dropdown, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Upload } from 'antd';
-import { CloudUploadOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, SettingOutlined, UploadOutlined } from '@ant-design/icons';
+import { Alert, Button, Checkbox, Dropdown, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, Upload } from 'antd';
+import { CloudUploadOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, SettingOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { history, useAccess } from '@umijs/max';
 import { createTown, deleteTown, getTowns, updateTown } from '@/services/town';
@@ -16,6 +16,54 @@ interface TownItem {
   created_at: string;
   updated_at: string;
 }
+
+const copyToClipboard = async (text: string) => {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    message.success('已复制');
+  } catch (error) {
+    message.error('复制失败');
+  }
+};
+
+const EllipsisText: React.FC<{ value?: any; maxWidth?: number | string }> = ({ value, maxWidth = '100%' }) => {
+  const text = value === null || value === undefined || value === '' ? '' : String(value);
+  if (!text) return <>-</>;
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth, width: '100%', minWidth: 0, verticalAlign: 'middle' }}>
+      <Tooltip title="复制">
+        <Button
+          type="text"
+          size="small"
+          icon={<CopyOutlined />}
+          onClick={event => {
+            event.stopPropagation();
+            copyToClipboard(text);
+          }}
+          style={{ width: 18, height: 18, padding: 0, flex: '0 0 18px' }}
+        />
+      </Tooltip>
+      <Typography.Text
+        ellipsis={{ tooltip: text }}
+        style={{ display: 'inline-block', flex: 1, minWidth: 0, maxWidth: '100%', margin: 0 }}
+      >
+        {text}
+      </Typography.Text>
+    </span>
+  );
+};
 
 const Town: React.FC = () => {
   const access = useAccess();
@@ -97,7 +145,7 @@ const Town: React.FC = () => {
   ];
 
   const columns = [
-    { title: '镇街名称', dataIndex: 'name', key: 'name', width: 200, ellipsis: true },
+    { title: '镇街名称', dataIndex: 'name', key: 'name', width: 200, render: (v: string) => <EllipsisText value={v} maxWidth={182} /> },
     // { title: '编码', dataIndex: 'code', key: 'code', render: (v: string) => v || '-' },
     {
       title: '状态',
@@ -122,7 +170,7 @@ const Town: React.FC = () => {
       ),
     },
     { title: '排序', dataIndex: 'sort', key: 'sort', width: 90 },
-    { title: '备注', dataIndex: 'remark', key: 'remark', width: 120, ellipsis: true, render: (v: string) => v || '-' },
+    { title: '备注', dataIndex: 'remark', key: 'remark', width: 160, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
     {
       title: '创建时间',
       dataIndex: 'created_at',
@@ -285,7 +333,7 @@ const Town: React.FC = () => {
         loading={loading}
         columns={columns}
         dataSource={data}
-        scroll={{ x: 980 }}
+        scroll={{ x: 1020 }}
         pagination={{
           current,
           pageSize,

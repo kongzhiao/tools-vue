@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Button,
   Alert,
+  Card,
   Form,
   Input,
   message,
@@ -11,9 +12,11 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
+  Typography,
   Upload,
 } from 'antd';
-import { CloudUploadOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { CloudUploadOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useAccess } from '@umijs/max';
 import {
@@ -34,6 +37,60 @@ interface DiseaseConfig {
   created_at: string;
   updated_at: string;
 }
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: 6,
+  border: '1px solid #edf0f5',
+  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+};
+
+const copyToClipboard = async (text: string) => {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    message.success('已复制');
+  } catch (error) {
+    message.error('复制失败');
+  }
+};
+
+const EllipsisText: React.FC<{ value?: any; maxWidth?: number | string }> = ({ value, maxWidth = '100%' }) => {
+  const text = value === null || value === undefined || value === '' ? '' : String(value);
+  if (!text) return <>-</>;
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth, width: '100%', minWidth: 0, verticalAlign: 'middle' }}>
+      <Tooltip title="复制">
+        <Button
+          type="text"
+          size="small"
+          icon={<CopyOutlined />}
+          onClick={event => {
+            event.stopPropagation();
+            copyToClipboard(text);
+          }}
+          style={{ width: 18, height: 18, padding: 0, flex: '0 0 18px' }}
+        />
+      </Tooltip>
+      <Typography.Text
+        ellipsis={{ tooltip: text }}
+        style={{ display: 'inline-block', flex: 1, minWidth: 0, maxWidth: '100%', margin: 0 }}
+      >
+        {text}
+      </Typography.Text>
+    </span>
+  );
+};
 
 const DiseaseConfigs: React.FC = () => {
   const access = useAccess();
@@ -137,8 +194,8 @@ const DiseaseConfigs: React.FC = () => {
   };
 
   const columns = [
-    { title: '病种编码', dataIndex: 'disease_code', key: 'disease_code', width: 150 },
-    { title: '病种名称', dataIndex: 'disease_name', key: 'disease_name', width: 220, ellipsis: true },
+    { title: '病种编码', dataIndex: 'disease_code', key: 'disease_code', width: 150, render: (v: string) => <EllipsisText value={v} maxWidth={132} /> },
+    { title: '病种名称', dataIndex: 'disease_name', key: 'disease_name', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={202} /> },
     {
       title: '状态',
       dataIndex: 'status',
@@ -147,7 +204,7 @@ const DiseaseConfigs: React.FC = () => {
       render: (status: number) => <Tag color={status === 1 ? 'green' : 'default'}>{status === 1 ? '启用' : '停用'}</Tag>,
     },
     // { title: '来源批次', dataIndex: 'source_batch', key: 'source_batch', width: 160, render: (v: string) => v || '-' },
-    { title: '备注', dataIndex: 'remark', key: 'remark', render: (v: string) => v || '-' },
+    { title: '备注', dataIndex: 'remark', key: 'remark', width: 180, render: (v: string) => <EllipsisText value={v} maxWidth={162} /> },
     {
       title: '创建时间',
       dataIndex: 'created_at',
@@ -193,59 +250,69 @@ const DiseaseConfigs: React.FC = () => {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16 }} wrap>
-        <Input
-          allowClear
-          placeholder="编码/名称"
-          style={{ width: 220 }}
-          value={filters.keyword}
-          onChange={e => setFilters({ ...filters, keyword: e.target.value })}
-        />
-        <Select
-          allowClear
-          placeholder="状态"
-          style={{ width: 120 }}
-          value={filters.status}
-          onChange={value => setFilters({ ...filters, status: value })}
-          options={[{ label: '启用', value: 1 }, { label: '停用', value: 0 }]}
-        />
-        <Button onClick={() => fetchData(1, pageSize)}>查询</Button>
-        <Button icon={<ReloadOutlined />} onClick={() => fetchData(current, pageSize)} loading={loading}>
-          刷新
-        </Button>
-        {access.canImportDiseaseConfig && (
-          <Button icon={<CloudUploadOutlined />} onClick={() => setImportVisible(true)}>导入</Button>
-        )}
-        {access.canCreateDiseaseConfig && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditing(null);
-              form.resetFields();
-              form.setFieldsValue({ status: 1 });
-              setModalVisible(true);
-            }}
-          >
-            新增编码
-          </Button>
-        )}
-      </Space>
+      <Card size="small" style={{ ...cardStyle, marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <Space wrap>
+            <Input
+              allowClear
+              placeholder="病种编码/病种名称"
+              style={{ width: 220 }}
+              value={filters.keyword}
+              onChange={e => setFilters({ ...filters, keyword: e.target.value })}
+            />
+            <Select
+              allowClear
+              placeholder="状态"
+              style={{ width: 120 }}
+              value={filters.status}
+              onChange={value => setFilters({ ...filters, status: value })}
+              options={[{ label: '启用', value: 1 }, { label: '停用', value: 0 }]}
+            />
+            <Button type="primary" onClick={() => fetchData(1, pageSize)}>查询</Button>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchData(current, pageSize)} loading={loading}>
+              刷新
+            </Button>
+          </Space>
+          <Space wrap>
+            {access.canImportDiseaseConfig && (
+              <Button icon={<CloudUploadOutlined />} onClick={() => setImportVisible(true)}>导入 重大疾病编码</Button>
+            )}
+            {access.canCreateDiseaseConfig && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditing(null);
+                  form.resetFields();
+                  form.setFieldsValue({ status: 1 });
+                  setModalVisible(true);
+                }}
+              >
+                新增 重大疾病编码
+              </Button>
+            )}
+          </Space>
+        </div>
+      </Card>
 
-      <Table
-        rowKey="id"
-        loading={loading}
-        columns={columns}
-        dataSource={data}
-        pagination={{
-          current,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: n => `共 ${n} 条记录`,
-          onChange: fetchData,
-        }}
-      />
+      <Card size="small" style={cardStyle}>
+        <Table
+          rowKey="id"
+          size="middle"
+          loading={loading}
+          columns={columns}
+          dataSource={data}
+          scroll={{ x: 1210 }}
+          pagination={{
+            current,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: n => `共 ${n} 条记录`,
+            onChange: fetchData,
+          }}
+        />
+      </Card>
 
       <Modal
         title={editing ? '编辑重大疾病编码' : '新增重大疾病编码'}
