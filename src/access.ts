@@ -64,6 +64,17 @@ export default (initialState: {
     canImportTown: hasPermission('镇街管理:导入'),
     canAccessTown: hasModulePermission('镇街管理'),
 
+    // 操作记录权限
+    canReadOperationLog: hasPermission('操作记录:查看'),
+    canAccessOperationLog: hasModulePermission('操作记录'),
+
+    // 业务筛选项权限
+    canReadBusinessFilterOption: hasPermission('业务筛选项:查看'),
+    canCreateBusinessFilterOption: hasPermission('业务筛选项:创建'),
+    canUpdateBusinessFilterOption: hasPermission('业务筛选项:编辑'),
+    canDeleteBusinessFilterOption: hasPermission('业务筛选项:删除'),
+    canAccessBusinessFilterOption: hasModulePermission('业务筛选项'),
+
     // 仪表板权限 - 所有已登录用户都可以访问
     canAccessDashboard: !!currentUser,
 

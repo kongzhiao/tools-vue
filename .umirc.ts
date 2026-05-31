@@ -110,6 +110,18 @@ export default defineConfig({
           component: './Town',
           access: 'canAccessTown',
         },
+        {
+          name: '操作记录',
+          path: 'operation-logs',
+          component: './OperationLog',
+          access: 'canAccessOperationLog',
+        },
+        {
+          name: '业务筛选项',
+          path: 'business-filter-options',
+          component: './BusinessFilterOption',
+          access: 'canAccessBusinessFilterOption',
+        },
       ],
     },
     {
