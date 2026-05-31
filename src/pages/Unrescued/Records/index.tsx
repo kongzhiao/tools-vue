@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Collapse,
   DatePicker,
   Dropdown,
@@ -11,6 +12,8 @@ import {
   message,
   Modal,
   Popconfirm,
+  Popover,
+  Progress,
   Select,
   Space,
   Switch,
@@ -27,12 +30,16 @@ import {
   CopyOutlined,
   DownloadOutlined,
   EditOutlined,
+  HolderOutlined,
   InboxOutlined,
   MoreOutlined,
   ReloadOutlined,
   RollbackOutlined,
   SendOutlined,
+  SettingOutlined,
   UploadOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useAccess, useModel } from '@umijs/max';
@@ -47,6 +54,7 @@ import {
   getUnrescuedStatistics,
   getUnrescuedWashConfig,
   getUnrescuedWashOptions,
+  getUnrescuedWashStatus,
   importUnrescuedAttachment1,
   importUnrescuedAttachment2,
   markUnrescuedReimbursement,
@@ -55,6 +63,7 @@ import {
   saveUnrescuedWashConfig,
   unnotifyUnrescuedRecords,
 } from '@/services/unrescued';
+import { getTaskProgress } from '@/services/task';
 
 const statusColors: Record<string, string> = {
   待处理: 'default',
@@ -74,6 +83,94 @@ const templateMap: Record<string, string> = {
   attachment2: '导入-附件2：救助对象名单模板.csv',
 };
 
+const settlementPeriodStorageKey = 'unrescued.records.settlement_period';
+const washTaskStoragePrefix = 'unrescued.records.wash_task';
+const visibleColumnsStorageKey = 'unrescued.records.visible_columns';
+const fixedColumnsStorageKey = 'unrescued.records.fixed_columns';
+const columnOrderStorageKey = 'unrescued.records.column_order';
+const requiredColumnKeys = ['settlement_period', 'name', 'id_card', 'action'];
+const townHiddenColumnKeys = ['exclude_status', 'exclude_rule_code', 'reimbursement_status'];
+const allColumnKeys = [
+  'settlement_period',
+  'name',
+  'id_card',
+  'sequence_no',
+  'street_town',
+  'village',
+  'priority_identity',
+  'medical_category',
+  'disease_code',
+  'disease_name',
+  'cert_location',
+  'hospital_name',
+  'hospital_code',
+  'in_out_city',
+  'admission_date',
+  'discharge_date',
+  'settlement_time',
+  'total_fee',
+  'policy_fee',
+  'pool_fund_pay',
+  'large_amount_pay',
+  'serious_illness_pay',
+  'used_outpatient_rescue',
+  'used_normal_rescue',
+  'used_major_rescue',
+  'used_large_fee_rescue',
+  'calc_reimbursement_amount',
+  'bank_name',
+  'bank_account_name',
+  'bank_account_no',
+  'status',
+  'exclude_status',
+  'exclude_rule_code',
+  'reimbursement_status',
+  'remark',
+  'action',
+];
+const defaultFixedColumnMap: Record<string, 'left' | 'right'> = {
+  settlement_period: 'left',
+  name: 'left',
+  id_card: 'left',
+  action: 'right',
+};
+const defaultVisibleColumnKeys = [
+  'settlement_period',
+  'sequence_no',
+  'name',
+  'id_card',
+  'street_town',
+  'priority_identity',
+  'medical_category',
+  'hospital_name',
+  'calc_reimbursement_amount',
+  'status',
+  'exclude_status',
+  'exclude_rule_code',
+  'reimbursement_status',
+  'remark',
+  'action',
+];
+
+const defaultSettlementPeriod = () => {
+  if (typeof window === 'undefined') {
+    return dayjs().format('YYYYMM');
+  }
+  let stored = '';
+  try {
+    stored = window.localStorage.getItem(settlementPeriodStorageKey) || '';
+  } catch (error) {
+    stored = '';
+  }
+  return /^\d{6}$/.test(stored) && dayjs(stored, 'YYYYMM').isValid()
+    ? stored
+    : dayjs().format('YYYYMM');
+};
+
+const washTaskStorageKey = (period: string) => `${washTaskStoragePrefix}.${period || 'default'}`;
+
+const isSuccessResponse = (res: any) => res?.code === 0 || res?.code === 200;
+
 const exportMap: Record<string, { label: string; countKey: string; disabledText: string }> = {
   attachment1: {
     label: '导出 排查明细',
@@ -83,12 +180,12 @@ const exportMap: Record<string, { label: string; countKey: string; disabledText:
   attachment2: {
     label: '导出 未报销台账',
     countKey: 'exportAttachment2Count',
-    disabledText: '请先导入救助对象名单并确保存在未剔除数据，再导出未报销台账',
+    disabledText: '当前筛选条件下暂无未剔除数据，不能导出未报销台账',
   },
   attachment3: {
     label: '导出 通知名单',
     countKey: 'exportAttachment3Count',
-    disabledText: '请先导入救助对象名单并确保存在未剔除数据，再导出通知名单',
+    disabledText: '当前筛选条件下暂无未剔除数据，不能导出通知名单',
   },
   attachment4: {
     label: '导出 应退应补排查记录',
@@ -136,6 +233,36 @@ const toolbarDividerStyle: React.CSSProperties = {
   width: 1,
   height: 22,
   background: '#edf0f5',
+};
+
+const filterRowStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '140px minmax(190px, 240px) minmax(150px, 180px) minmax(160px, 190px) auto',
+  gap: 8,
+  alignItems: 'center',
+};
+
+const townFilterRowStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '140px minmax(150px, 180px) minmax(190px, 240px) minmax(130px, 160px) auto',
+  gap: 8,
+  alignItems: 'center',
+};
+
+const moreFilterRowStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+  gap: 8,
+  alignItems: 'center',
+  marginTop: 8,
+};
+
+const filterActionsStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  whiteSpace: 'nowrap',
 };
 
 const copyToClipboard = async (text: string) => {
@@ -212,6 +339,61 @@ const UnrescuedRecords: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [sortState, setSortState] = useState<any>({});
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(() => {
+    if (typeof window === 'undefined') {
+      return defaultVisibleColumnKeys;
+    }
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(visibleColumnsStorageKey) || '[]');
+      return Array.isArray(stored) && stored.length > 0
+        ? Array.from(new Set([...stored.map(String), ...requiredColumnKeys]))
+        : defaultVisibleColumnKeys;
+    } catch (error) {
+      return defaultVisibleColumnKeys;
+    }
+  });
+  const [fixedColumnMap, setFixedColumnMap] = useState<Record<string, 'left' | 'right'>>(() => {
+    if (typeof window === 'undefined') {
+      return defaultFixedColumnMap;
+    }
+    try {
+      const storedText = window.localStorage.getItem(fixedColumnsStorageKey);
+      if (!storedText) {
+        return defaultFixedColumnMap;
+      }
+      const stored = JSON.parse(storedText);
+      if (!stored || typeof stored !== 'object') {
+        return defaultFixedColumnMap;
+      }
+      return Object.entries(stored).reduce((map, [key, value]) => {
+        if (value === 'left' || value === 'right') {
+          map[key] = value;
+        }
+        return map;
+      }, {} as Record<string, 'left' | 'right'>);
+    } catch (error) {
+      return defaultFixedColumnMap;
+    }
+  });
+  const [columnOrderKeys, setColumnOrderKeys] = useState<string[]>(() => {
+    if (typeof window === 'undefined') {
+      return allColumnKeys;
+    }
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(columnOrderStorageKey) || '[]');
+      if (!Array.isArray(stored) || stored.length === 0) {
+        return allColumnKeys;
+      }
+      return [
+        ...stored.map(String).filter(key => allColumnKeys.includes(key)),
+        ...allColumnKeys.filter(key => !stored.includes(key)),
+      ];
+    } catch (error) {
+      return allColumnKeys;
+    }
+  });
+  const [draggedColumnKey, setDraggedColumnKey] = useState<string>('');
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState<any>({});
   const [towns, setTowns] = useState<any[]>([]);
@@ -219,6 +401,7 @@ const UnrescuedRecords: React.FC = () => {
   const [savedWashRules, setSavedWashRules] = useState<any[]>([]);
   const [washEditing, setWashEditing] = useState(false);
   const [washOptions, setWashOptions] = useState<any>({ medical_categories: [], identities: [] });
+  const [washTask, setWashTask] = useState<any>(null);
   const [importVisible, setImportVisible] = useState(false);
   const [importType, setImportType] = useState<'attachment1' | 'attachment2'>('attachment1');
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -226,9 +409,10 @@ const UnrescuedRecords: React.FC = () => {
   const [accountVisible, setAccountVisible] = useState(false);
   const [distributeVisible, setDistributeVisible] = useState(false);
   const [distributeTownId, setDistributeTownId] = useState<number | undefined>();
+  const [filterExpanded, setFilterExpanded] = useState(false);
   const receivePromptRef = useRef(false);
   const [filters, setFilters] = useState<any>({
-    settlement_period: dayjs().format('YYYYMM'),
+    settlement_period: defaultSettlementPeriod(),
     keyword: '',
   });
   const [accountForm] = Form.useForm();
@@ -265,17 +449,62 @@ const UnrescuedRecords: React.FC = () => {
     });
     return Array.from(values).map(value => ({ label: value, value }));
   }, [washOptions.identities, data]);
+  const medicalCategoryOptions = useMemo(() => {
+    const values = new Set<string>();
+    (washOptions.medical_categories || []).forEach((value: string) => {
+      if (value) values.add(value);
+    });
+    data.forEach((item: any) => {
+      if (item.medical_category) values.add(item.medical_category);
+    });
+    return Array.from(values).map(value => ({ label: value, value }));
+  }, [washOptions.medical_categories, data]);
+  const washRuleOptions = useMemo(() => savedWashRules.map(rule => ({
+    label: rule.name || rule.code,
+    value: rule.code,
+  })).filter(item => item.value), [savedWashRules]);
+  const washRuleNameByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    [...fixedWashRules, ...savedWashRules].forEach(rule => {
+      if (rule?.code) {
+        map.set(rule.code, rule.name || rule.code);
+      }
+    });
+    return map;
+  }, [savedWashRules]);
+  const sortable = (field: string) => ({
+    sorter: true,
+    sortOrder: sortState.field === field ? sortState.order : null,
+  });
+  const renderWashRuleName = (code: string) => {
+    if (!code) return '-';
+    const name = washRuleNameByCode.get(code) || code;
+    return (
+      <Tooltip title={code}>
+        <Tag color={name === code ? 'default' : 'blue'}>{name}</Tag>
+      </Tooltip>
+    );
+  };
+  const moneyCell = (value: any) => {
+    if (value === null || value === undefined || value === '') return '-';
+    const numberValue = Number(value);
+    if (Number.isNaN(numberValue)) return String(value);
+    return numberValue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
-  const effectiveFilters = () => ({
-    ...filters,
+  const effectiveFilters = (baseFilters = filters) => ({
+    ...baseFilters,
     ...(isTownUser ? { town_id: Number(currentUser?.town_id) } : {}),
   });
 
-  const fetchData = async (page = current, size = pageSize) => {
+  const fetchData = async (page = current, size = pageSize, overrideFilters?: any, overrideSortState = sortState) => {
     setLoading(true);
     try {
-      const query = effectiveFilters();
-      const res = await getUnrescuedRecords({ ...query, page, page_size: size });
+      const query = effectiveFilters(overrideFilters);
+      const sortParams = overrideSortState?.field && overrideSortState?.order
+        ? { sort_field: overrideSortState.field, sort_order: overrideSortState.order }
+        : {};
+      const res = await getUnrescuedRecords({ ...query, ...sortParams, page, page_size: size });
       if (res.code === 0) {
         setData(res.data?.list || []);
         setTotal(res.data?.total || 0);
@@ -290,6 +519,15 @@ const UnrescuedRecords: React.FC = () => {
       message.error('获取未救助明细失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStats = async (overrideFilters?: any) => {
+    try {
+      const statRes = await getUnrescuedStatistics(effectiveFilters(overrideFilters));
+      if (statRes.code === 0) setStats(statRes.data || {});
+    } catch (error) {
+      // The table refresh path will surface user-facing errors; progress polling can stay quiet.
     }
   };
 
@@ -309,13 +547,100 @@ const UnrescuedRecords: React.FC = () => {
     }
   };
 
+  const clearWashTaskCache = (period: string) => {
+    try {
+      window.localStorage.removeItem(washTaskStorageKey(period));
+    } catch (error) {
+      // Ignore storage failures.
+    }
+  };
+
+  const cacheWashTask = (period: string, uuid: string) => {
+    try {
+      window.localStorage.setItem(washTaskStorageKey(period), uuid);
+    } catch (error) {
+      // Ignore storage failures; polling still works during this session.
+    }
+  };
+
+  const readCachedWashTask = (period: string) => {
+    try {
+      return window.localStorage.getItem(washTaskStorageKey(period)) || '';
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const syncWashTask = async (uuid: string, period = filters.settlement_period, silent = false) => {
+    if (!uuid) return;
+    try {
+      const res = await getTaskProgress(uuid);
+      if (!isSuccessResponse(res)) {
+        return;
+      }
+      const task = res.data;
+      setWashTask(task);
+      if (['completed', 'failed', 'cancelled'].includes(task?.status)) {
+        clearWashTaskCache(period);
+        setWashTask(null);
+        if (task.status === 'completed') {
+          if (!silent) message.success('清洗任务已完成');
+          fetchData(1, pageSize);
+        } else if (!silent) {
+          message.error('清洗任务执行失败，请查看任务中心或后端日志');
+        }
+      }
+    } catch (error) {
+      // Polling failures are transient; keep the cached uuid and retry later.
+    }
+  };
+
+  const loadWashTaskStatus = async (period = filters.settlement_period) => {
+    if (!period) {
+      setWashTask(null);
+      return;
+    }
+
+    const cachedUuid = readCachedWashTask(period);
+    if (cachedUuid) {
+      await syncWashTask(cachedUuid, period);
+    }
+
+    try {
+      const res = await getUnrescuedWashStatus({ settlement_period: period });
+      if (isSuccessResponse(res) && res.data?.uuid) {
+        cacheWashTask(period, res.data.uuid);
+        setWashTask(res.data);
+      }
+    } catch (error) {
+      // Status query is best-effort; task center still has the canonical state.
+    }
+  };
+
   useEffect(() => {
     loadBasics();
     fetchData(1, pageSize);
-    const handleTaskChanged = () => fetchData(1, pageSize);
+    loadWashTaskStatus(filters.settlement_period);
+    const handleTaskChanged = () => {
+      fetchData(1, pageSize);
+      loadWashTaskStatus(filters.settlement_period);
+    };
     window.addEventListener('taskStatusChanged', handleTaskChanged);
     return () => window.removeEventListener('taskStatusChanged', handleTaskChanged);
   }, []);
+
+  useEffect(() => {
+    if (!washTask?.uuid || !['pending', 'processing'].includes(washTask.status)) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      syncWashTask(washTask.uuid, filters.settlement_period);
+      fetchStats();
+    }, 2000);
+
+    return () => window.clearInterval(timer);
+  }, [washTask?.uuid, washTask?.status, filters.settlement_period]);
 
   useEffect(() => {
     if (isTownUser && currentUser?.town_id) {
@@ -326,6 +651,13 @@ const UnrescuedRecords: React.FC = () => {
       }));
     }
   }, [isTownUser, currentUser?.town_id]);
+
+  useEffect(() => {
+    if (!isTownUser) {
+      return;
+    }
+    setVisibleColumnKeys(prev => prev.filter(key => !townHiddenColumnKeys.includes(key)));
+  }, [isTownUser]);
 
   useEffect(() => {
     if (!isTownUser || receivePromptRef.current || !filters.settlement_period || Number(stats.pendingReceive || 0) <= 0) {
@@ -495,7 +827,7 @@ const UnrescuedRecords: React.FC = () => {
     }
   };
 
-  const handleWash = async () => {
+  const submitWash = async () => {
     if (!filters.settlement_period) {
       message.warning('请先选择清算期');
       return;
@@ -503,11 +835,30 @@ const UnrescuedRecords: React.FC = () => {
     const query = effectiveFilters();
     const res = await executeUnrescuedWash({ settlement_period: query.settlement_period, town_id: query.town_id });
     if (res.code === 0) {
-      message.success(`清洗完成：剔除 ${res.data?.excluded_count || 0} 条，保留 ${res.data?.kept_count || 0} 条`);
-      fetchData();
+      const uuid = res.data?.uuid;
+      if (uuid) {
+        cacheWashTask(query.settlement_period, uuid);
+        setWashTask({ uuid, status: 'pending', progress: 0, title: '未救助台账_执行清洗' });
+      }
+      message.success('清洗任务已提交，执行期间不可重复提交');
     } else {
       message.error(res.message || res.msg || '清洗失败');
     }
+  };
+
+  const handleWash = () => {
+    if (!filters.settlement_period) {
+      message.warning('请先选择清算期');
+      return;
+    }
+
+    Modal.confirm({
+      title: '确定执行清洗规则吗？',
+      content: `将按当前已保存并启用的清洗规则处理 ${filters.settlement_period} 清算期数据。执行期间不可重复提交。`,
+      okText: '确认执行',
+      cancelText: '再检查一下',
+      onOk: submitWash,
+    });
   };
 
   const handleSaveWash = async () => {
@@ -524,6 +875,18 @@ const UnrescuedRecords: React.FC = () => {
   const handleCancelWashEdit = () => {
     setWashRules(savedWashRules);
     setWashEditing(false);
+  };
+
+  const resetFilters = () => {
+    const nextFilters = {
+      settlement_period: filters.settlement_period,
+      keyword: '',
+      ...(isTownUser ? { town_id: Number(currentUser?.town_id), status: undefined } : {}),
+    };
+    setFilters(nextFilters);
+    setSelectedRowKeys([]);
+    setFilterExpanded(false);
+    fetchData(1, pageSize, nextFilters);
   };
 
   const handleDistribute = async () => {
@@ -564,8 +927,9 @@ const UnrescuedRecords: React.FC = () => {
     setWashRules(prev => prev.map((item, idx) => (idx === index ? { ...item, ...patch } : item)));
   };
 
-  const canExecuteWash = !washEditing && savedWashRules.some(rule => rule.enabled === true);
-  const washExecuteTip = washEditing ? '请先保存或取消清洗规则编辑' : '请配置并启用至少一条清洗规则';
+  const isWashRunning = !!washTask?.uuid && ['pending', 'processing'].includes(washTask.status);
+  const canExecuteWash = !isWashRunning && !washEditing && savedWashRules.some(rule => rule.enabled === true);
+  const washExecuteTip = isWashRunning ? '清洗任务正在执行中' : washEditing ? '请先保存或取消清洗规则编辑' : '请配置并启用至少一条清洗规则';
 
   const confirmExport = (type: string) => {
     const item = exportMap[type];
@@ -685,12 +1049,86 @@ const UnrescuedRecords: React.FC = () => {
     }
   };
 
+  const persistVisibleColumns = (keys: string[]) => {
+    const allowedKeys = isTownUser ? keys.filter(key => !townHiddenColumnKeys.includes(key)) : keys;
+    const nextKeys = Array.from(new Set([...allowedKeys, ...requiredColumnKeys]));
+    setVisibleColumnKeys(nextKeys);
+    try {
+      window.localStorage.setItem(visibleColumnsStorageKey, JSON.stringify(nextKeys));
+    } catch (error) {
+      // Ignore storage failures; the setting still works in memory.
+    }
+  };
+
+  const persistFixedColumns = (nextMap: Record<string, 'left' | 'right'>) => {
+    setFixedColumnMap(nextMap);
+    try {
+      window.localStorage.setItem(fixedColumnsStorageKey, JSON.stringify(nextMap));
+    } catch (error) {
+      // Ignore storage failures; the setting still works in memory.
+    }
+  };
+
+  const persistColumnOrder = (nextKeys: string[]) => {
+    const normalizedKeys = [
+      ...nextKeys.filter(key => allColumnKeys.includes(key)),
+      ...allColumnKeys.filter(key => !nextKeys.includes(key)),
+    ];
+    setColumnOrderKeys(normalizedKeys);
+    try {
+      window.localStorage.setItem(columnOrderStorageKey, JSON.stringify(normalizedKeys));
+    } catch (error) {
+      // Ignore storage failures; the setting still works in memory.
+    }
+  };
+
+  const moveColumn = (sourceKey: string, targetKey: string) => {
+    if (!sourceKey || !targetKey || sourceKey === targetKey) {
+      return;
+    }
+    const nextKeys = [...columnOrderKeys];
+    const sourceIndex = nextKeys.indexOf(sourceKey);
+    const targetIndex = nextKeys.indexOf(targetKey);
+    if (sourceIndex < 0 || targetIndex < 0) {
+      return;
+    }
+    nextKeys.splice(sourceIndex, 1);
+    nextKeys.splice(targetIndex, 0, sourceKey);
+    persistColumnOrder(nextKeys);
+  };
+
+  const updateColumnFixed = (key: string, value: string) => {
+    const nextMap = { ...fixedColumnMap };
+    if (value === 'left' || value === 'right') {
+      nextMap[key] = value;
+    } else {
+      delete nextMap[key];
+    }
+    persistFixedColumns(nextMap);
+  };
+
+  const resetColumnSettings = () => {
+    persistVisibleColumns(defaultVisibleColumnKeys);
+    persistFixedColumns(defaultFixedColumnMap);
+    persistColumnOrder(allColumnKeys);
+  };
+
+  const handleTableChange = (pagination: any, _tableFilters: any, sorter: any) => {
+    const activeSorter = Array.isArray(sorter) ? sorter.find(item => item?.order) : sorter;
+    const nextSortState = activeSorter?.field && activeSorter?.order
+      ? { field: String(activeSorter.field), order: activeSorter.order }
+      : {};
+    setSortState(nextSortState);
+    fetchData(pagination?.current || current, pagination?.pageSize || pageSize, undefined, nextSortState);
+  };
+
   const columns = [
-    { title: '清算期', dataIndex: 'settlement_period', width: 120, render: (v: string) => <EllipsisText value={v} maxWidth={84} /> },
-    { title: '序号', dataIndex: 'sequence_no', width: 110, render: (v: string) => <EllipsisText value={v} maxWidth={72} /> },
-    { title: '姓名', dataIndex: 'name', width: 150, render: (v: string) => <EllipsisText value={v} maxWidth={82} /> },
-    { title: '身份证号', dataIndex: 'id_card', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={172} /> },
+    { key: 'settlement_period', title: '清算期', dataIndex: 'settlement_period', width: 120, ...sortable('settlement_period'), render: (v: string) => <EllipsisText value={v} maxWidth={84} /> },
+    { key: 'name', title: '姓名', dataIndex: 'name', width: 130, ...sortable('name'), render: (v: string) => <EllipsisText value={v} maxWidth={130} /> },
+    { key: 'id_card', title: '身份证号', dataIndex: 'id_card', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={220} /> },
+    { key: 'sequence_no', title: '序号', dataIndex: 'sequence_no', width: 160, ...sortable('sequence_no'), render: (v: string) => <EllipsisText value={v} maxWidth={150} /> },
     {
+      key: 'street_town',
       title: '镇街',
       dataIndex: 'street_town',
       width: 150,
@@ -700,52 +1138,74 @@ const UnrescuedRecords: React.FC = () => {
         const displayTown = v || matchedTownName || '-';
         return (
           <Space size={4} wrap style={{ maxWidth: 132 }}>
-            <EllipsisText value={record.village ? `${displayTown} / ${record.village}` : displayTown} maxWidth={v && townId === 0 ? 76 : 128} />
+            <EllipsisText value={displayTown} maxWidth={v && townId === 0 ? 76 : 128} />
             {v && townId === 0 && <Tag color="red">未匹配</Tag>}
           </Space>
         );
       },
     },
+    { key: 'village', title: '村社', dataIndex: 'village', width: 140, render: (v: string) => <EllipsisText value={v} maxWidth={122} /> },
     {
+      key: 'priority_identity',
       title: '身份',
       dataIndex: 'priority_identity',
       width: 190,
+      ...sortable('priority_identity'),
       render: (v: string) => <EllipsisText value={v} maxWidth={172} />,
     },
-    { title: '医疗类别', dataIndex: 'medical_category', width: 130, render: (v: string) => <EllipsisText value={v} maxWidth={112} /> },
-    { title: '医药机构', dataIndex: 'hospital_name', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={202} /> },
-    { title: '政策范围费用', dataIndex: 'policy_fee', width: 120 },
-    { title: '统筹报销', dataIndex: 'pool_fund_pay', width: 110 },
-    { title: '大额报销', dataIndex: 'large_amount_pay', width: 110 },
-    { title: '大病报销', dataIndex: 'serious_illness_pay', width: 110 },
-    { title: '进入报销金额', dataIndex: 'calc_reimbursement_amount', width: 130 },
-    { title: '开户行', dataIndex: 'bank_name', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={202} /> },
-    { title: '户名', dataIndex: 'bank_account_name', width: 140, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
-    { title: '账号录入', dataIndex: 'bank_account_no', width: 170, render: (v: string) => <EllipsisText value={v} maxWidth={152} /> },
+    { key: 'medical_category', title: '医疗类别', dataIndex: 'medical_category', width: 150, ...sortable('medical_category'), render: (v: string) => <EllipsisText value={v} maxWidth={112} /> },
+    { key: 'disease_code', title: '病种编码', dataIndex: 'disease_code', width: 130, ...sortable('disease_code'), render: (v: string) => <EllipsisText value={v} maxWidth={112} /> },
+    { key: 'disease_name', title: '病种名称', dataIndex: 'disease_name', width: 170, ...sortable('disease_name'), render: (v: string) => <EllipsisText value={v} maxWidth={152} /> },
+    { key: 'cert_location', title: '认定地', dataIndex: 'cert_location', width: 110, ...sortable('cert_location'), render: (v: string) => <EllipsisText value={v} maxWidth={92} /> },
+    { key: 'hospital_name', title: '医药机构', dataIndex: 'hospital_name', width: 240, ...sortable('hospital_name'), render: (v: string) => <EllipsisText value={v} maxWidth={222} /> },
+    { key: 'hospital_code', title: '机构编码', dataIndex: 'hospital_code', width: 190, ...sortable('hospital_code'), render: (v: string) => <EllipsisText value={v} maxWidth={132} /> },
+    { key: 'in_out_city', title: '市内/外', dataIndex: 'in_out_city', width: 100, ...sortable('in_out_city'), render: (v: string) => <EllipsisText value={v} maxWidth={82} /> },
+    { key: 'admission_date', title: '入院时间', dataIndex: 'admission_date', width: 120, ...sortable('admission_date') },
+    { key: 'discharge_date', title: '出院时间', dataIndex: 'discharge_date', width: 120, ...sortable('discharge_date') },
+    { key: 'settlement_time', title: '结算时间', dataIndex: 'settlement_time', width: 180, ...sortable('settlement_time') },
+    { key: 'total_fee', title: '医疗总费用', dataIndex: 'total_fee', width: 120, align: 'right' as const, ...sortable('total_fee'), render: moneyCell },
+    { key: 'policy_fee', title: '政策范围费用', dataIndex: 'policy_fee', width: 140, align: 'right' as const, ...sortable('policy_fee'), render: moneyCell },
+    { key: 'pool_fund_pay', title: '统筹报销', dataIndex: 'pool_fund_pay', width: 120, align: 'right' as const, ...sortable('pool_fund_pay'), render: moneyCell },
+    { key: 'large_amount_pay', title: '大额报销', dataIndex: 'large_amount_pay', width: 120, align: 'right' as const, ...sortable('large_amount_pay'), render: moneyCell },
+    { key: 'serious_illness_pay', title: '大病报销', dataIndex: 'serious_illness_pay', width: 120, align: 'right' as const, ...sortable('serious_illness_pay'), render: moneyCell },
+    { key: 'used_outpatient_rescue', title: '已用门诊救助', dataIndex: 'used_outpatient_rescue', width: 140, align: 'right' as const, ...sortable('used_outpatient_rescue'), render: moneyCell },
+    { key: 'used_normal_rescue', title: '已用普通住院救助', dataIndex: 'used_normal_rescue', width: 160, align: 'right' as const, ...sortable('used_normal_rescue'), render: moneyCell },
+    { key: 'used_major_rescue', title: '已用重特大救助', dataIndex: 'used_major_rescue', width: 160, align: 'right' as const, ...sortable('used_major_rescue'), render: moneyCell },
+    { key: 'used_large_fee_rescue', title: '已用大额费用救助', dataIndex: 'used_large_fee_rescue', width: 160, align: 'right' as const, ...sortable('used_large_fee_rescue'), render: moneyCell },
+    { key: 'calc_reimbursement_amount', title: '进入报销金额', dataIndex: 'calc_reimbursement_amount', width: 150, align: 'right' as const, ...sortable('calc_reimbursement_amount'), render: moneyCell },
+    { key: 'bank_name', title: '开户行', dataIndex: 'bank_name', width: 220, render: (v: string) => <EllipsisText value={v} maxWidth={202} /> },
+    { key: 'bank_account_name', title: '户名', dataIndex: 'bank_account_name', width: 140, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
+    { key: 'bank_account_no', title: '账号录入', dataIndex: 'bank_account_no', width: 170, render: (v: string) => <EllipsisText value={v} maxWidth={152} /> },
     {
+      key: 'status',
       title: '状态',
       dataIndex: 'status',
       width: 110,
+      ...sortable('status'),
       render: (v: string) => <Tag color={statusColors[v] || 'default'}>{v}</Tag>,
     },
     {
+      key: 'exclude_status',
       title: '剔除',
       dataIndex: 'exclude_status',
       width: 100,
+      ...sortable('exclude_status'),
       render: (v: string) => <Tag color={v === '已剔除' ? 'red' : 'green'}>{v}</Tag>,
     },
+    { key: 'exclude_rule_code', title: '命中规则', dataIndex: 'exclude_rule_code', width: 150, ...sortable('exclude_rule_code'), render: renderWashRuleName },
     {
+      key: 'reimbursement_status',
       title: '报销',
       dataIndex: 'reimbursement_status',
       width: 100,
+      ...sortable('reimbursement_status'),
       render: (v: string) => <Tag color={v === '已报销' ? 'green' : 'default'}>{v}</Tag>,
     },
-    { title: '备注', dataIndex: 'remark', width: 160, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
+    { key: 'remark', title: '备注', dataIndex: 'remark', width: 160, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
     {
-      title: '操作',
       key: 'action',
+      title: '操作',
       width: 230,
-      fixed: 'right' as const,
       render: (_: any, record: any) => {
         const canFill = ['已接收', '已通知'].includes(record.status);
         const canNotify = record.status === '已接收';
@@ -793,6 +1253,113 @@ const UnrescuedRecords: React.FC = () => {
     },
   ];
 
+  const columnOrderIndex = new Map(columnOrderKeys.map((key, index) => [key, index]));
+  const orderedColumns = [...columns].sort((left, right) => {
+    const leftIndex = columnOrderIndex.get(String(left.key)) ?? allColumnKeys.length;
+    const rightIndex = columnOrderIndex.get(String(right.key)) ?? allColumnKeys.length;
+    return leftIndex - rightIndex;
+  });
+  const configurableColumns = orderedColumns
+    .filter(column => !isTownUser || !townHiddenColumnKeys.includes(String(column.key)));
+  const configuredVisibleColumns = orderedColumns.filter(column => {
+    const key = String(column.key);
+    return visibleColumnKeys.includes(key) && (!isTownUser || !townHiddenColumnKeys.includes(key));
+  }).map(column => {
+    const fixed = fixedColumnMap[String(column.key)];
+    return fixed ? { ...column, fixed } : { ...column, fixed: undefined };
+  });
+  const visibleColumns = [
+    ...configuredVisibleColumns.filter(column => column.fixed === 'left'),
+    ...configuredVisibleColumns.filter(column => !column.fixed),
+    ...configuredVisibleColumns.filter(column => column.fixed === 'right'),
+  ];
+  const tableScrollX = Math.max(
+    visibleColumns.reduce((sum, column) => sum + Number(column.width || 120), 0) + 64,
+    980,
+  );
+  const columnSettingContent = (
+    <Space direction="vertical" size={10} style={{ width: 360 }}>
+      <div style={{ maxHeight: 360, overflowY: 'auto', paddingRight: 4 }}>
+        {configurableColumns.map(column => {
+          const key = String(column.key);
+          const checked = visibleColumnKeys.includes(key);
+          const required = requiredColumnKeys.includes(key);
+          const fixed = fixedColumnMap[key];
+          return (
+            <div
+              key={key}
+              draggable
+              onDragStart={event => {
+                setDraggedColumnKey(key);
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', key);
+              }}
+              onDragOver={event => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={event => {
+                event.preventDefault();
+                const sourceKey = event.dataTransfer.getData('text/plain') || draggedColumnKey;
+                moveColumn(sourceKey, key);
+                setDraggedColumnKey('');
+              }}
+              onDragEnd={() => setDraggedColumnKey('')}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '20px minmax(0, 1fr) 68px',
+                gap: 8,
+                alignItems: 'center',
+                padding: '5px 0',
+                opacity: draggedColumnKey === key ? 0.45 : 1,
+              }}
+            >
+              <HolderOutlined style={{ color: '#94a3b8', cursor: 'grab' }} />
+              <Checkbox
+                checked={checked}
+                disabled={required}
+                onChange={event => {
+                  const nextKeys = event.target.checked
+                    ? [...visibleColumnKeys, key]
+                    : visibleColumnKeys.filter(item => item !== key);
+                  persistVisibleColumns(nextKeys);
+                }}
+              >
+                {column.title as React.ReactNode}
+              </Checkbox>
+              <Space size={2}>
+                <Tooltip title={fixed === 'left' ? '取消左侧固定' : '固定左侧'}>
+                  <Button
+                    size="small"
+                    type={fixed === 'left' ? 'primary' : 'text'}
+                    disabled={!checked}
+                    icon={<VerticalRightOutlined />}
+                    onClick={() => updateColumnFixed(key, fixed === 'left' ? 'none' : 'left')}
+                    style={{ width: 30 }}
+                  />
+                </Tooltip>
+                <Tooltip title={fixed === 'right' ? '取消右侧固定' : '固定右侧'}>
+                  <Button
+                    size="small"
+                    type={fixed === 'right' ? 'primary' : 'text'}
+                    disabled={!checked}
+                    icon={<VerticalLeftOutlined />}
+                    onClick={() => updateColumnFixed(key, fixed === 'right' ? 'none' : 'right')}
+                    style={{ width: 30 }}
+                  />
+                </Tooltip>
+              </Space>
+            </div>
+          );
+        })}
+      </div>
+      <Space>
+        <Button size="small" onClick={resetColumnSettings}>恢复默认</Button>
+        <Button size="small" onClick={() => persistVisibleColumns(orderedColumns.map(column => String(column.key)))}>显示全部</Button>
+      </Space>
+    </Space>
+  );
+
   const washColumns = [
     {
       title: '启用',
@@ -835,16 +1402,25 @@ const UnrescuedRecords: React.FC = () => {
         const isAmount = !isCategory && !isIdentity && !isHospital;
 
         if (isCategory || isIdentity) {
-          const options = (isCategory ? washOptions.medical_categories : washOptions.identities)
+          const optionSource = [
+            ...(isCategory ? washOptions.medical_categories : washOptions.identities),
+            ...(record.values || []),
+          ];
+          const options = Array.from(new Set(optionSource.filter(Boolean)))
             .map((value: string) => ({ label: value, value }));
           const optionValues = new Set(options.map((item: any) => item.value));
           const selectedValues = (record.values || []).filter((value: string) => optionValues.has(value));
           return (
             <Select
-              mode="multiple"
+              mode="tags"
               allowClear
               disabled={!washEditing}
-              placeholder={options.length ? (isCategory ? '选择医疗类别' : '选择身份类别') : '暂无业务筛选选项，请先导入数据'}
+              tokenSeparators={['、', ',', '，', '\n']}
+              placeholder={
+                isCategory
+                  ? '选择医疗类别，或输入关键词后回车'
+                  : '选择身份类别，或输入关键词后回车'
+              }
               style={{ width: '100%' }}
               value={selectedValues}
               options={options}
@@ -920,65 +1496,126 @@ const UnrescuedRecords: React.FC = () => {
   return (
     <div>
       <Card size="small" style={{ ...cardStyle, marginBottom: 12 }}>
-        <Space wrap>
+        <div style={isTownUser ? townFilterRowStyle : filterRowStyle}>
           <DatePicker
             picker="month"
             allowClear={false}
+            style={{ width: '100%' }}
             value={filters.settlement_period ? dayjs(filters.settlement_period, 'YYYYMM') : undefined}
-            onChange={value => setFilters({ ...filters, settlement_period: value ? value.format('YYYYMM') : '' })}
+            onChange={value => {
+              const settlementPeriod = value ? value.format('YYYYMM') : '';
+              if (settlementPeriod) {
+                try {
+                  window.localStorage.setItem(settlementPeriodStorageKey, settlementPeriod);
+                } catch (error) {
+                  // Ignore storage failures; the selected value still applies in memory.
+                }
+              }
+              const nextFilters = { ...filters, settlement_period: settlementPeriod };
+              setFilters(nextFilters);
+              setSelectedRowKeys([]);
+              fetchData(1, pageSize, nextFilters);
+              loadWashTaskStatus(settlementPeriod);
+            }}
           />
           <Input
             allowClear
             placeholder="身份证/姓名/序号"
-            style={{ width: 210 }}
             value={filters.keyword}
             onChange={e => setFilters({ ...filters, keyword: e.target.value })}
           />
-          <Select
-            allowClear
-            placeholder="镇街"
-            style={{ width: 160 }}
-            value={filters.town_id}
-            disabled={isTownUser}
-            onChange={value => setFilters({ ...filters, town_id: value })}
-            options={availableTowns.map((item: any) => ({ label: item.name, value: item.id }))}
-          />
-          <Select
-            allowClear
-            showSearch
-            placeholder="身份"
-            style={{ width: 170 }}
-            value={filters.priority_identity}
-            onChange={value => setFilters({ ...filters, priority_identity: value })}
-            options={identityOptions}
-          />
-          <Select
-            allowClear
-            placeholder="状态"
-            style={{ width: 130 }}
-            value={filters.status}
-            onChange={value => setFilters({ ...filters, status: value })}
-            options={statusOptions.map(v => ({ label: v, value: v }))}
-          />
-          <Select
-            allowClear
-            placeholder="剔除"
-            style={{ width: 120 }}
-            value={filters.exclude_status}
-            onChange={value => setFilters({ ...filters, exclude_status: value })}
-            options={['未剔除', '已剔除'].map(v => ({ label: v, value: v }))}
-          />
-          <Select
-            allowClear
-            placeholder="报销"
-            style={{ width: 120 }}
-            value={filters.reimbursement_status}
-            onChange={value => setFilters({ ...filters, reimbursement_status: value })}
-            options={['未报销', '已报销'].map(v => ({ label: v, value: v }))}
-          />
-          <Button type="primary" onClick={() => fetchData(1, pageSize)}>查询</Button>
-          <Button icon={<ReloadOutlined />} onClick={() => fetchData(current, pageSize)} loading={loading}>刷新</Button>
-        </Space>
+          {isTownUser ? (
+            <>
+              <Select
+                disabled
+                placeholder="镇街"
+                value={Number(currentUser?.town_id || filters.town_id || 0) || undefined}
+                options={availableTowns.map((item: any) => ({ label: item.name, value: item.id }))}
+              />
+              <Select
+                allowClear
+                placeholder="状态"
+                value={filters.status}
+                onChange={value => setFilters({ ...filters, status: value })}
+                options={statusOptions.map(v => ({ label: v, value: v }))}
+              />
+            </>
+          ) : (
+            <>
+              <Select
+                allowClear
+                showSearch
+                placeholder="医疗类别"
+                value={filters.medical_category}
+                onChange={value => setFilters({ ...filters, medical_category: value })}
+                options={medicalCategoryOptions}
+              />
+              <Select
+                allowClear
+                showSearch
+                placeholder="身份类别"
+                value={filters.priority_identity}
+                onChange={value => setFilters({ ...filters, priority_identity: value })}
+                options={identityOptions}
+              />
+            </>
+          )}
+          <div style={filterActionsStyle}>
+            <Button type="primary" onClick={() => fetchData(1, pageSize)}>查询</Button>
+            <Button icon={<ReloadOutlined />} onClick={() => fetchData(current, pageSize)} loading={loading}>刷新</Button>
+            <Button onClick={resetFilters}>重置</Button>
+            {!isTownUser && (
+              <Button icon={<MoreOutlined />} onClick={() => setFilterExpanded(value => !value)}>
+                {filterExpanded ? '收起筛选' : '更多筛选'}
+              </Button>
+            )}
+          </div>
+        </div>
+        {!isTownUser && filterExpanded && (
+          <div style={moreFilterRowStyle}>
+            <Select
+              allowClear
+              placeholder="镇街"
+              value={filters.town_id}
+              onChange={value => setFilters({ ...filters, town_id: value })}
+              options={availableTowns.map((item: any) => ({ label: item.name, value: item.id }))}
+            />
+            <Input
+              allowClear
+              placeholder="机构名称"
+              value={filters.hospital_name}
+              onChange={e => setFilters({ ...filters, hospital_name: e.target.value })}
+            />
+            <Select
+              allowClear
+              placeholder="状态"
+              value={filters.status}
+              onChange={value => setFilters({ ...filters, status: value })}
+              options={statusOptions.map(v => ({ label: v, value: v }))}
+            />
+            <Select
+              allowClear
+              placeholder="剔除"
+              value={filters.exclude_status}
+              onChange={value => setFilters({ ...filters, exclude_status: value })}
+              options={['未剔除', '已剔除'].map(v => ({ label: v, value: v }))}
+            />
+            <Select
+              allowClear
+              placeholder="命中规则"
+              value={filters.exclude_rule_code}
+              onChange={value => setFilters({ ...filters, exclude_rule_code: value })}
+              options={washRuleOptions}
+            />
+            <Select
+              allowClear
+              placeholder="报销"
+              value={filters.reimbursement_status}
+              onChange={value => setFilters({ ...filters, reimbursement_status: value })}
+              options={['未报销', '已报销'].map(v => ({ label: v, value: v }))}
+            />
+          </div>
+        )}
       </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 12 }}>
@@ -1022,18 +1659,24 @@ const UnrescuedRecords: React.FC = () => {
 
             {!isTownUser && access.canWashUnrescuedRecords && (
               canExecuteWash ? (
-                <Popconfirm title="确定按当前规则执行清洗吗？" onConfirm={handleWash} okText="确定" cancelText="取消">
-                  <Button>执行 清洗规则</Button>
-                </Popconfirm>
+                <Button onClick={handleWash}>执行 清洗规则</Button>
               ) : (
                 <Tooltip title={washExecuteTip}>
-                  <Button disabled>执行 清洗规则</Button>
+                  <Button disabled loading={isWashRunning}>{isWashRunning ? '清洗执行中' : '执行 清洗规则'}</Button>
                 </Tooltip>
               )
             )}
           </div>
 
           <div style={toolbarSideStyle}>
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              title="列显示"
+              content={columnSettingContent}
+            >
+              <Button icon={<SettingOutlined />}>列设置</Button>
+            </Popover>
             {batchMenuItems.length > 0 && (
               <Dropdown
                 menu={{ items: batchMenuItems, onClick: handleBatchMenuClick }}
@@ -1056,6 +1699,22 @@ const UnrescuedRecords: React.FC = () => {
         </div>
       </Card>
 
+      {isWashRunning && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={`清洗任务执行中：${filters.settlement_period}`}
+          description={
+            <Progress
+              percent={Math.min(Number(washTask?.progress || 0), 99.9)}
+              status="active"
+              size="small"
+            />
+          }
+        />
+      )}
+
       {!isTownUser && access.canWashUnrescuedRecords && (
         <Collapse
           style={{ marginBottom: 12, background: '#fff' }}
@@ -1063,31 +1722,34 @@ const UnrescuedRecords: React.FC = () => {
             {
               key: 'wash-rules',
               label: '清洗规则配置',
-              extra: washEditing ? (
-                <Space onClick={event => event.stopPropagation()}>
-                  <Button size="small" type="primary" onClick={handleSaveWash}>保存</Button>
-                  <Button size="small" onClick={handleCancelWashEdit}>取消</Button>
-                </Space>
-              ) : (
-                <Button
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={event => {
-                    event.stopPropagation();
-                    setSavedWashRules(washRules);
-                    setWashEditing(true);
-                  }}
-                >
-                  编辑
-                </Button>
-              ),
               children: (
                 <>
                   <Alert
                     type={washEditing ? 'info' : 'warning'}
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message={washEditing ? '医疗类别和身份选项来自业务筛选表，可编辑规则后保存。' : '当前为只读状态，点击右上角“编辑”后可修改清洗规则。'}
+                    message={(
+                      <Space wrap>
+                        {washEditing ? (
+                          <>
+                            <Button size="small" type="primary" onClick={handleSaveWash}>保存</Button>
+                            <Button size="small" onClick={handleCancelWashEdit}>取消</Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="small"
+                            icon={<EditOutlined />}
+                            onClick={() => {
+                              setSavedWashRules(washRules);
+                              setWashEditing(true);
+                            }}
+                          >
+                            编辑
+                          </Button>
+                        )}
+                        <span>{washEditing ? '医疗类别和身份选项来自业务筛选表，可编辑规则后保存。' : '当前为只读状态，点击“编辑”后可修改清洗规则。'}</span>
+                      </Space>
+                    )}
                   />
                   <Table
                     rowKey="code"
@@ -1107,17 +1769,17 @@ const UnrescuedRecords: React.FC = () => {
       <Table
         rowKey="id"
         loading={loading}
-        columns={columns}
+        columns={visibleColumns}
         dataSource={data}
-        scroll={{ x: 2130 }}
+        scroll={{ x: tableScrollX }}
         rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+        onChange={handleTableChange}
         pagination={{
           current,
           pageSize,
           total,
           showSizeChanger: true,
           showTotal: n => `共 ${n} 条记录`,
-          onChange: fetchData,
         }}
       />
 

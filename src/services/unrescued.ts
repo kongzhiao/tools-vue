@@ -89,6 +89,13 @@ export async function executeUnrescuedWash(data: any) {
   });
 }
 
+export async function getUnrescuedWashStatus(params?: any) {
+  return request('/api/unrescued/records/wash/status', {
+    method: 'GET',
+    params,
+  });
+}
+
 export async function distributeUnrescuedRecords(data: any) {
   return request('/api/unrescued/records/distribute', {
     method: 'POST',
