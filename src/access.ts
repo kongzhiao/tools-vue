@@ -23,6 +23,7 @@ export default (initialState: {
     try {
       return isAdmin ||
         permissions.includes('*') ||
+        permissions.includes(module) ||
         permissions.some((p: string) => p && typeof p === 'string' && p.startsWith(`${module}:`));
     } catch (error) {
       console.error('权限检查错误:', error);

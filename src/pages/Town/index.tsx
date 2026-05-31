@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Button, Checkbox, Dropdown, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, Upload } from 'antd';
 import { CloudUploadOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, SettingOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
-import { history, useAccess } from '@umijs/max';
+import { history, request, useAccess } from '@umijs/max';
 import { createTown, deleteTown, getTowns, updateTown } from '@/services/town';
 
 interface TownItem {
@@ -248,13 +248,10 @@ const Town: React.FC = () => {
 
     setUploading(true);
     try {
-      const res = await fetch('/api/towns/import', {
+      const res = await request('/api/towns/import', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: formData,
-      }).then(r => r.json());
+        data: formData,
+      });
 
       if (res.code !== 0) throw new Error(res.msg || '导入提交失败');
       message.success('导入任务已提交，请在任务中心查看进度');

@@ -27,23 +27,26 @@ if (typeof window !== 'undefined') {
 
 // 转换菜单数据格式为UmiJS需要的格式
 function convertMenuData(menuData: any[]): any[] {
-  return menuData.map(menu => {
-    const convertedMenu: any = {
-      name: menu.name,
-      path: menu.path,
-      icon: menu.icon,
-    };
+  return menuData
+    .filter(menu => menu?.type === 'menu' && menu?.path)
+    .map(menu => {
+      const convertedMenu: any = {
+        name: menu.name,
+        path: menu.path,
+        icon: menu.icon,
+      };
 
-    if (menu.component) {
-      convertedMenu.component = menu.component;
-    }
+      if (menu.component) {
+        convertedMenu.component = menu.component;
+      }
 
-    if (menu.children && menu.children.length > 0) {
-      convertedMenu.routes = convertMenuData(menu.children);
-    }
+      const childMenus = convertMenuData(menu.children || []);
+      if (childMenus.length > 0) {
+        convertedMenu.routes = childMenus;
+      }
 
-    return convertedMenu;
-  });
+      return convertedMenu;
+    });
 }
 
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化

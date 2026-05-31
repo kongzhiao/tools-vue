@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Modal, Form, Input, message, Popconfirm, Space, Tree, Select, Tag, Card, Row, Col,
+  Switch,
+  Tooltip,
+  Typography,
+  Upload,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined, CopyOutlined} from '@ant-design/icons';
 import { request, useAccess } from '@umijs/max';
 
 const { Option } = Select;
@@ -196,6 +200,54 @@ const Role: React.FC = () => {
     return permissions.map(buildNode);
   };
 
+const copyToClipboard = async (text: string) => {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    message.success('已复制');
+  } catch (error) {
+    message.error('复制失败');
+  }
+};
+
+const EllipsisText: React.FC<{ value?: any; maxWidth?: number | string }> = ({ value, maxWidth = '100%' }) => {
+  const text = value === null || value === undefined || value === '' ? '' : String(value);
+  if (!text) return <>-</>;
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth, width: '100%', minWidth: 0, verticalAlign: 'middle' }}>
+      {/* <Tooltip title="复制">
+        <Button
+          type="text"
+          size="small"
+          icon={<CopyOutlined />}
+          onClick={event => {
+            event.stopPropagation();
+            copyToClipboard(text);
+          }}
+          style={{ width: 18, height: 18, padding: 0, flex: '0 0 18px' }}
+        />
+      </Tooltip> */}
+      <Typography.Text
+        ellipsis={{ tooltip: text }}
+        style={{ display: 'inline-block', flex: 1, minWidth: 0, maxWidth: '100%', margin: 0 }}
+      >
+        {text}
+      </Typography.Text>
+    </span>
+  );
+};
+
   // 构建权限显示树形结构（用于列表中显示）
   const buildPermissionDisplayTree = (permissions: Permission[]): any[] => {
     const buildDisplayNode = (permission: Permission): any => {
@@ -227,6 +279,8 @@ const Role: React.FC = () => {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
+      width: 100,
+      render: (v: string) => <EllipsisText value={v} maxWidth={100} />
     },
     {
       title: '权限',

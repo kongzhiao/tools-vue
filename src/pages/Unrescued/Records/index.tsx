@@ -187,11 +187,11 @@ const exportMap: Record<string, { label: string; countKey: string; disabledText:
     countKey: 'exportAttachment3Count',
     disabledText: '当前筛选条件下暂无未剔除数据，不能导出通知名单',
   },
-  attachment4: {
-    label: '导出 应退应补排查记录',
-    countKey: 'exportAttachment4Count',
-    disabledText: '暂无应退应补排查记录，不能导出应退应补排查记录',
-  },
+  // attachment4: {
+  //   label: '导出 应退应补排查记录',
+  //   countKey: 'exportAttachment4Count',
+  //   disabledText: '暂无应退应补排查记录，不能导出应退应补排查记录',
+  // },
 };
 
 const statCards = [
