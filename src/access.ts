@@ -204,6 +204,23 @@ export default (initialState: {
     canImportDiseaseConfig: hasPermission('重大疾病编码:导入'),
     canAccessDiseaseConfig: hasModulePermission('重大疾病编码'),
 
+    // 参保台账权限
+    canAccessEnroll: hasModulePermission('参保台账'),
+    canAccessEnrollLedgers: hasModulePermission('参保台账明细'),
+    canReadEnrollLedgers: hasPermission('参保台账明细:查看'),
+    canImportEnrollLedgers: hasPermission('参保台账明细:导入'),
+    canExportEnrollLedgers: hasPermission('参保台账明细:导出'),
+    canUpdateEnrollLedgers: hasPermission('参保台账明细:编辑'),
+    canDeleteEnrollLedgers: hasPermission('参保台账明细:删除'),
+    canAccessEnrollConfigs: hasModulePermission('参保配置'),
+    canReadEnrollConfigs: hasPermission('参保配置:查看'),
+    canImportEnrollConfigs: hasPermission('参保配置:导入'),
+    canCreateEnrollConfigs: hasPermission('参保配置:创建'),
+    canUpdateEnrollConfigs: hasPermission('参保配置:编辑'),
+    canDeleteEnrollConfigs: hasPermission('参保配置:删除'),
+    canAccessEnrollImportBatches: hasModulePermission('参保导入记录'),
+    canReadEnrollImportBatches: hasPermission('参保导入记录:查看'),
+
 
 
 

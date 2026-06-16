@@ -235,6 +235,31 @@ export default defineConfig({
         },
       ],
     },
+    {
+      name: '参保台账',
+      path: '/enroll',
+      icon: 'SolutionOutlined',
+      routes: [
+        {
+          name: '参保台账明细',
+          path: 'ledgers',
+          component: './Enroll/Ledgers',
+          access: 'canAccessEnrollLedgers',
+        },
+        {
+          name: '参保配置',
+          path: 'configs',
+          component: './Enroll/Configs',
+          access: 'canAccessEnrollConfigs',
+        },
+        {
+          name: '参保导入记录',
+          path: 'import-batches',
+          component: './Enroll/ImportBatches',
+          access: 'canAccessEnrollImportBatches',
+        },
+      ],
+    },
 
     /** 优抚救助 2025-12-20 */
     {

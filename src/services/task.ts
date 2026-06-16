@@ -8,6 +8,7 @@ export interface TaskItem {
     file_url: string | null;
     url_at: string | null;
     file_size: string | null;
+    failure_reason?: string | null;
     created_at: string;
     updated_at: string;
 }

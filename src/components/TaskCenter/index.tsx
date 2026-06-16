@@ -160,6 +160,14 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
                         {percent < 20 && <span className="progress-text-outer">{percentText}</span>}
                     </div>
                 </div>
+                {record.status === 'failed' && record.failure_reason && (
+                    <Tooltip title={record.failure_reason} placement="topLeft">
+                        <div className="task-failure-reason">
+                            <span className="task-failure-label">失败原因：</span>
+                            <span className="task-failure-text">{record.failure_reason}</span>
+                        </div>
+                    </Tooltip>
+                )}
                 <div className="task-item-footer">
                     <div className="task-item-info">
                         <span className="task-item-time">{record.created_at}</span>

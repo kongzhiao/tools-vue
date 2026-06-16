@@ -31,6 +31,7 @@ const cardStyle: React.CSSProperties = {
 
 const moduleOptions = [
   { label: '未救助台账', value: 'unrescued' },
+  { label: '参保台账', value: 'enroll' },
 ];
 
 const typeOptions = [
@@ -40,6 +41,8 @@ const typeOptions = [
   { label: '镇街', value: 'street_town' },
   { label: '病种名称', value: 'disease_name' },
   { label: '病种编码', value: 'disease_code' },
+  { label: '参保镇街', value: 'town_name' },
+  { label: '参保原始身份', value: 'raw_identity' },
 ];
 
 const copyToClipboard = async (text: string) => {
