@@ -89,7 +89,7 @@ const visibleColumnsStorageKey = 'unrescued.records.visible_columns';
 const fixedColumnsStorageKey = 'unrescued.records.fixed_columns';
 const columnOrderStorageKey = 'unrescued.records.column_order';
 const requiredColumnKeys = ['settlement_period', 'name', 'id_card', 'action'];
-const townHiddenColumnKeys = ['exclude_status', 'exclude_rule_code', 'reimbursement_status'];
+const townHiddenColumnKeys = ['exclude_status', 'exclude_rule_code'];
 const allColumnKeys = [
   'settlement_period',
   'name',
@@ -126,6 +126,12 @@ const allColumnKeys = [
   'exclude_rule_code',
   'reimbursement_status',
   'remark',
+  'distributed_at',
+  'received_at',
+  'notified_at',
+  'reimbursed_at',
+  'created_at',
+  'updated_at',
   'action',
 ];
 const defaultFixedColumnMap: Record<string, 'left' | 'right'> = {
@@ -491,6 +497,11 @@ const UnrescuedRecords: React.FC = () => {
     if (Number.isNaN(numberValue)) return String(value);
     return numberValue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+  const dateTimeCell = (value: any) => {
+    if (!value) return '-';
+    const parsed = dayjs(value);
+    return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm:ss') : String(value);
+  };
 
   const effectiveFilters = (baseFilters = filters) => ({
     ...baseFilters,
@@ -838,7 +849,7 @@ const UnrescuedRecords: React.FC = () => {
       const uuid = res.data?.uuid;
       if (uuid) {
         cacheWashTask(query.settlement_period, uuid);
-        setWashTask({ uuid, status: 'pending', progress: 0, title: '未救助台账_执行清洗' });
+        setWashTask({ uuid, status: 'pending', progress: 0, title: '未救助台账_清洗_清洗规则' });
       }
       message.success('清洗任务已提交，执行期间不可重复提交');
     } else {
@@ -1202,6 +1213,12 @@ const UnrescuedRecords: React.FC = () => {
       render: (v: string) => <Tag color={v === '已报销' ? 'green' : 'default'}>{v}</Tag>,
     },
     { key: 'remark', title: '备注', dataIndex: 'remark', width: 160, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
+    { key: 'distributed_at', title: '下放时间', dataIndex: 'distributed_at', width: 180, ...sortable('distributed_at'), render: dateTimeCell },
+    { key: 'received_at', title: '接收时间', dataIndex: 'received_at', width: 180, ...sortable('received_at'), render: dateTimeCell },
+    { key: 'notified_at', title: '通知时间', dataIndex: 'notified_at', width: 180, ...sortable('notified_at'), render: dateTimeCell },
+    { key: 'reimbursed_at', title: '报销时间', dataIndex: 'reimbursed_at', width: 180, ...sortable('reimbursed_at'), render: dateTimeCell },
+    { key: 'created_at', title: '创建时间', dataIndex: 'created_at', width: 180, ...sortable('created_at'), render: dateTimeCell },
+    { key: 'updated_at', title: '更新时间', dataIndex: 'updated_at', width: 180, ...sortable('updated_at'), render: dateTimeCell },
     {
       key: 'action',
       title: '操作',
@@ -1564,55 +1581,70 @@ const UnrescuedRecords: React.FC = () => {
             <Button type="primary" onClick={() => fetchData(1, pageSize)}>查询</Button>
             <Button icon={<ReloadOutlined />} onClick={() => fetchData(current, pageSize)} loading={loading}>刷新</Button>
             <Button onClick={resetFilters}>重置</Button>
-            {!isTownUser && (
-              <Button icon={<MoreOutlined />} onClick={() => setFilterExpanded(value => !value)}>
-                {filterExpanded ? '收起筛选' : '更多筛选'}
-              </Button>
-            )}
+            <Button icon={<MoreOutlined />} onClick={() => setFilterExpanded(value => !value)}>
+              {filterExpanded ? '收起筛选' : '更多筛选'}
+            </Button>
           </div>
         </div>
-        {!isTownUser && filterExpanded && (
+        {filterExpanded && (
           <div style={moreFilterRowStyle}>
-            <Select
-              allowClear
-              placeholder="镇街"
-              value={filters.town_id}
-              onChange={value => setFilters({ ...filters, town_id: value })}
-              options={availableTowns.map((item: any) => ({ label: item.name, value: item.id }))}
-            />
-            <Input
-              allowClear
-              placeholder="机构名称"
-              value={filters.hospital_name}
-              onChange={e => setFilters({ ...filters, hospital_name: e.target.value })}
-            />
-            <Select
-              allowClear
-              placeholder="状态"
-              value={filters.status}
-              onChange={value => setFilters({ ...filters, status: value })}
-              options={statusOptions.map(v => ({ label: v, value: v }))}
-            />
-            <Select
-              allowClear
-              placeholder="剔除"
-              value={filters.exclude_status}
-              onChange={value => setFilters({ ...filters, exclude_status: value })}
-              options={['未剔除', '已剔除'].map(v => ({ label: v, value: v }))}
-            />
-            <Select
-              allowClear
-              placeholder="命中规则"
-              value={filters.exclude_rule_code}
-              onChange={value => setFilters({ ...filters, exclude_rule_code: value })}
-              options={washRuleOptions}
-            />
+            {!isTownUser && (
+              <>
+                <Select
+                  allowClear
+                  placeholder="镇街"
+                  value={filters.town_id}
+                  onChange={value => setFilters({ ...filters, town_id: value })}
+                  options={availableTowns.map((item: any) => ({ label: item.name, value: item.id }))}
+                />
+                <Input
+                  allowClear
+                  placeholder="机构名称"
+                  value={filters.hospital_name}
+                  onChange={e => setFilters({ ...filters, hospital_name: e.target.value })}
+                />
+                <Select
+                  allowClear
+                  placeholder="状态"
+                  value={filters.status}
+                  onChange={value => setFilters({ ...filters, status: value })}
+                  options={statusOptions.map(v => ({ label: v, value: v }))}
+                />
+                <Select
+                  allowClear
+                  placeholder="剔除"
+                  value={filters.exclude_status}
+                  onChange={value => setFilters({ ...filters, exclude_status: value })}
+                  options={['未剔除', '已剔除'].map(v => ({ label: v, value: v }))}
+                />
+                <Select
+                  allowClear
+                  placeholder="命中规则"
+                  value={filters.exclude_rule_code}
+                  onChange={value => setFilters({ ...filters, exclude_rule_code: value })}
+                  options={washRuleOptions}
+                />
+              </>
+            )}
             <Select
               allowClear
               placeholder="报销"
               value={filters.reimbursement_status}
               onChange={value => setFilters({ ...filters, reimbursement_status: value })}
               options={['未报销', '已报销'].map(v => ({ label: v, value: v }))}
+            />
+            <Select
+              allowClear
+              placeholder="市内/外"
+              value={filters.in_out_city}
+              onChange={value => setFilters({ ...filters, in_out_city: value })}
+              options={['市内', '市外'].map(v => ({ label: v, value: v }))}
+            />
+            <Input
+              allowClear
+              placeholder="备注"
+              value={filters.remark}
+              onChange={e => setFilters({ ...filters, remark: e.target.value })}
             />
           </div>
         )}
@@ -1687,7 +1719,7 @@ const UnrescuedRecords: React.FC = () => {
                 </Button>
               </Dropdown>
             )}
-            {!isTownUser && access.canExportUnrescuedRecords && (
+            {(isTownUser || access.canExportUnrescuedRecords) && (
               <Dropdown
                 menu={{ items: exportMenuItems, onClick: ({ key }) => confirmExport(String(key)) }}
                 trigger={['click']}
