@@ -1,7 +1,7 @@
 import type { MenuProps } from 'antd';
 import { Dropdown, Modal } from 'antd';
-import React, { useState } from 'react';
-import { LockOutlined, LogoutOutlined } from '@ant-design/icons';
+import React, { useEffect, useRef, useState } from 'react';
+import { DownOutlined, LockOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import ChangePasswordModal from '../ChangePasswordModal';
 import './index.less';
 
@@ -10,10 +10,45 @@ interface RightContentProps {
         nickname?: string;
         username?: string;
     };
+    compact?: boolean;
 }
 
-const RightContent: React.FC<RightContentProps> = ({ currentUser }) => {
+const RightContent: React.FC<RightContentProps> = ({ currentUser, compact: compactProp = false }) => {
     const [visible, setVisible] = useState(false);
+    const [measuredCompact, setMeasuredCompact] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const compact = compactProp || measuredCompact;
+
+    useEffect(() => {
+        const node = contentRef.current;
+        if (!node) return;
+
+        const updateCompact = () => {
+            let current: HTMLElement | null = node;
+            let minWidth = Number.POSITIVE_INFINITY;
+            while (current && current !== document.body) {
+                const width = current.getBoundingClientRect().width;
+                if (width > 0) minWidth = Math.min(minWidth, width);
+                current = current.parentElement;
+            }
+            setMeasuredCompact(Number.isFinite(minWidth) && minWidth <= 150);
+        };
+
+        updateCompact();
+        const resizeObserver = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(updateCompact)
+            : null;
+        resizeObserver?.observe(node);
+        if (node.parentElement) {
+            resizeObserver?.observe(node.parentElement);
+        }
+        window.addEventListener('resize', updateCompact);
+
+        return () => {
+            resizeObserver?.disconnect();
+            window.removeEventListener('resize', updateCompact);
+        };
+    }, []);
 
     // 退出登录
     const handleLogout = () => {
@@ -50,17 +85,24 @@ const RightContent: React.FC<RightContentProps> = ({ currentUser }) => {
     ];
 
     return (
-        <div className="right-content">
-            <Dropdown menu={{ items }} placement="bottomRight">
+        <div ref={contentRef} className={`right-content ${compact ? 'right-content-compact' : ''}`}>
+            <Dropdown menu={{ items }} placement="bottomRight" trigger={['click']}>
                 <div className="user-info">
-                    <img
-                        src="https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png"
-                        alt="avatar"
-                        className="user-avatar"
-                    />
-                    <span className="user-name">
-                        {currentUser.nickname || currentUser.username}
-                    </span>
+                    {compact ? (
+                        <UserOutlined className="user-compact-icon" />
+                    ) : (
+                        <>
+                            <img
+                                src="https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png"
+                                alt="avatar"
+                                className="user-avatar"
+                            />
+                            <span className="user-name">
+                                {currentUser.nickname || currentUser.username}
+                            </span>
+                            <DownOutlined className="user-action-icon" />
+                        </>
+                    )}
                 </div>
             </Dropdown>
             

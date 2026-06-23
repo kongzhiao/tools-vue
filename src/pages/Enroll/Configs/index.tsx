@@ -61,6 +61,26 @@ const yearOptions = Array.from({ length: 3 }, (_, index) => {
   return { label: `${year}`, value: year };
 });
 
+const tableScrollXMap: Record<string, number> = {
+  subsidy: 1920,
+  medical: 1500,
+  identity_amount: 1450,
+};
+
+const actionCellStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 4,
+  width: '100%',
+  whiteSpace: 'nowrap',
+};
+
+const fixedActionColumnStyle: React.CSSProperties = {
+  background: '#fff',
+  boxShadow: '-8px 0 14px -14px rgba(15, 23, 42, 0.45)',
+};
+
 const buildConfigPayload = (values: any, activeType: string) => {
   const common = {
     year: values.year,
@@ -238,21 +258,24 @@ const EnrollConfigsPage: React.FC = () => {
   const columns = useMemo(() => {
     const actionColumn = {
       title: '操作',
-      width: 150,
+      width: 170,
+      align: 'center' as const,
       fixed: 'right' as const,
+      onHeaderCell: () => ({ style: fixedActionColumnStyle }),
+      onCell: () => ({ style: fixedActionColumnStyle }),
       render: (_: any, record: any) => (
-        <Space>
-          {access.canUpdateEnrollConfigs && <Button type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>编辑</Button>}
+        <span style={actionCellStyle}>
+          {access.canUpdateEnrollConfigs && <Button size="small" type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>编辑</Button>}
           {access.canDeleteEnrollConfigs && (
             <Popconfirm title="确定删除该配置吗？" onConfirm={async () => {
               await deleteEnrollConfig(record.id, { type: activeType });
               message.success('删除成功');
               fetchData();
             }}>
-              <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
+              <Button size="small" type="link" danger icon={<DeleteOutlined />}>删除</Button>
             </Popconfirm>
           )}
-        </Space>
+        </span>
       ),
     };
 
@@ -342,7 +365,7 @@ const EnrollConfigsPage: React.FC = () => {
           loading={loading}
           columns={columns}
           dataSource={data}
-          scroll={{ x: activeType === 'identity_amount' ? 1250 : 1900 }}
+          scroll={{ x: tableScrollXMap[activeType] || 1500 }}
           pagination={{ current, pageSize, total, showSizeChanger: true, showTotal: value => `共 ${value} 条` }}
           onChange={p => fetchData(p.current || 1, p.pageSize || pageSize)}
         />

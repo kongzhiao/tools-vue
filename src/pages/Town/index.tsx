@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Dropdown, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, Upload } from 'antd';
-import { CloudUploadOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, SettingOutlined, UploadOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Checkbox, Dropdown, Form, Input, InputNumber, message, Modal, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, Upload } from 'antd';
+import { CloudUploadOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, SearchOutlined, SettingOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { history, request, useAccess } from '@umijs/max';
 import { createTown, deleteTown, getTowns, updateTown } from '@/services/town';
@@ -16,6 +16,19 @@ interface TownItem {
   created_at: string;
   updated_at: string;
 }
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: 6,
+  border: '1px solid #edf0f5',
+  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+};
+
+const filterToolbarStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  flexWrap: 'wrap',
+};
 
 const copyToClipboard = async (text: string) => {
   try {
@@ -266,80 +279,84 @@ const Town: React.FC = () => {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16 }} wrap>
-        <Input
-          allowClear
-          placeholder="镇街名称"
-          style={{ width: 200 }}
-          value={filters.name}
-          onChange={e => setFilters({ ...filters, name: e.target.value })}
-        />
-        <Select
-          allowClear
-          placeholder="状态"
-          style={{ width: 120 }}
-          value={filters.status}
-          onChange={value => setFilters({ ...filters, status: value })}
-          options={[{ label: '启用', value: 1 }, { label: '停用', value: 0 }]}
-        />
-        <Button onClick={() => fetchData(1, pageSize)}>查询</Button>
-        <Button icon={<ReloadOutlined />} onClick={() => fetchData(current, pageSize)} loading={loading}>
-          刷新
-        </Button>
-        <Dropdown
-          trigger={['click']}
-          dropdownRender={() => (
-            <div style={{ padding: 12, background: '#fff', boxShadow: '0 3px 12px rgba(0,0,0,0.12)' }}>
-              <Checkbox.Group
-                value={visibleColumns}
-                options={columnOptions}
-                onChange={values => {
-                  const next = Array.from(new Set(['name', ...values.map(String), 'action']));
-                  setVisibleColumns(next);
-                }}
-                style={{ display: 'grid', gap: 8 }}
-              />
-            </div>
-          )}
-        >
-          <Button icon={<SettingOutlined />}>显示字段</Button>
-        </Dropdown>
-        {access.canCreateTown && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditing(null);
-              form.resetFields();
-              form.setFieldsValue({ status: 1, sort: 0 });
-              setModalVisible(true);
-            }}
+      <Card size="small" style={{ ...cardStyle, marginBottom: 12 }}>
+        <div style={filterToolbarStyle}>
+          <Input
+            allowClear
+            placeholder="镇街名称"
+            style={{ width: 220 }}
+            value={filters.name}
+            onChange={e => setFilters({ ...filters, name: e.target.value })}
+          />
+          <Select
+            allowClear
+            placeholder="状态"
+            style={{ width: 140 }}
+            value={filters.status}
+            onChange={value => setFilters({ ...filters, status: value })}
+            options={[{ label: '启用', value: 1 }, { label: '停用', value: 0 }]}
+          />
+          <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchData(1, pageSize)}>查询</Button>
+          <Button icon={<ReloadOutlined />} onClick={() => fetchData(current, pageSize)} loading={loading}>
+            刷新
+          </Button>
+          <Dropdown
+            trigger={['click']}
+            dropdownRender={() => (
+              <div style={{ padding: 12, background: '#fff', boxShadow: '0 3px 12px rgba(0,0,0,0.12)' }}>
+                <Checkbox.Group
+                  value={visibleColumns}
+                  options={columnOptions}
+                  onChange={values => {
+                    const next = Array.from(new Set(['name', ...values.map(String), 'action']));
+                    setVisibleColumns(next);
+                  }}
+                  style={{ display: 'grid', gap: 8 }}
+                />
+              </div>
+            )}
           >
-            新增镇街
-          </Button>
-        )}
-        {access.canImportTown && (
-          <Button icon={<CloudUploadOutlined />} onClick={() => setImportVisible(true)}>
-            导入
-          </Button>
-        )}
-      </Space>
+            <Button icon={<SettingOutlined />}>显示字段</Button>
+          </Dropdown>
+          {access.canCreateTown && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditing(null);
+                form.resetFields();
+                form.setFieldsValue({ status: 1, sort: 0 });
+                setModalVisible(true);
+              }}
+            >
+              新增镇街
+            </Button>
+          )}
+          {access.canImportTown && (
+            <Button icon={<CloudUploadOutlined />} onClick={() => setImportVisible(true)}>
+              导入
+            </Button>
+          )}
+        </div>
+      </Card>
 
-      <Table
-        rowKey="id"
-        loading={loading}
-        columns={columns}
-        dataSource={data}
-        scroll={{ x: 1020 }}
-        pagination={{
-          current,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: n => `共 ${n} 条记录`,
-          onChange: fetchData,
-        }}
-      />
+      <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={data}
+          scroll={{ x: 1020 }}
+          pagination={{
+            current,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: n => `共 ${n} 条记录`,
+            onChange: fetchData,
+          }}
+        />
+      </Card>
 
       <Modal
         title={editing ? '编辑镇街' : '新增镇街'}

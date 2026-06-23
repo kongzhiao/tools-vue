@@ -25,6 +25,7 @@ import {
   DownloadOutlined,
   EditOutlined,
   InboxOutlined,
+  MoreOutlined,
   ReloadOutlined,
   SearchOutlined,
   SettingOutlined,
@@ -83,11 +84,23 @@ const filterActionsStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 };
 
+const moreFilterRowStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+  gap: 8,
+  alignItems: 'center',
+  marginTop: 8,
+};
+
 const yearOptions = [0, 1, 2].map(i => ({ label: `${dayjs().year() - i}`, value: dayjs().year() - i }));
 const monthOptions = Array.from({ length: 12 }, (_, index) => {
   const value = index + 1;
   return { label: `${String(value).padStart(2, '0')}月`, value };
 });
+const yesNoOptions = ['是', '否'].map(value => ({ label: value, value }));
+const yesNoPendingOptions = ['是', '否', '待核实'].map(value => ({ label: value, value }));
+const toSelectOptions = (values?: string[]) => (values || []).map(value => ({ label: value, value }));
+const unmatchedInsuranceCategory = '未匹配';
 
 const importMetas: Record<string, { title: string; button: string; endpoint: (data: FormData) => Promise<any>; template: string[]; rule: string }> = {
   attachment3: {
@@ -222,6 +235,7 @@ const EnrollLedgersPage: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [editVisible, setEditVisible] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [filterExpanded, setFilterExpanded] = useState(false);
   const selectedYear = Form.useWatch('year', form);
   const currentImportMeta = importMetas[importType] || importMetas.attachment3;
 
@@ -390,7 +404,13 @@ const EnrollLedgersPage: React.FC = () => {
     { title: '缴费时间', dataIndex: 'payment_time', key: 'payment_time', width: 130, sorter: true },
     { title: '居民医保缴费金额', dataIndex: 'resident_payment_amount', key: 'resident_payment_amount', width: 160, sorter: true },
     { title: '资助金额', dataIndex: 'subsidy_amount', key: 'subsidy_amount', width: 120, sorter: true },
-    { title: '参保类别', dataIndex: 'insurance_category', key: 'insurance_category', width: 130 },
+    {
+      title: '参保类别',
+      dataIndex: 'insurance_category',
+      key: 'insurance_category',
+      width: 130,
+      render: (value: string) => value ? value : <Tag color="default">{unmatchedInsuranceCategory}</Tag>,
+    },
     { title: '是否参保', dataIndex: 'is_insured', key: 'is_insured', width: 100 },
     { title: '未参保原因', dataIndex: 'uninsured_reason', key: 'uninsured_reason', width: 160 },
     { title: '是否符合资助', dataIndex: 'is_eligible_for_subsidy', key: 'is_eligible_for_subsidy', width: 130 },
@@ -479,10 +499,10 @@ const EnrollLedgersPage: React.FC = () => {
               <Input allowClear placeholder="姓名/身份证/村居" />
             </Form.Item>
             <Form.Item name="town_name" noStyle>
-              <Select allowClear showSearch placeholder="镇街" options={(options.town_names || []).map((v: string) => ({ label: v, value: v }))} />
+              <Select allowClear showSearch placeholder="镇街" options={toSelectOptions(options.town_names)} />
             </Form.Item>
             <Form.Item name="change_status" noStyle>
-              <Select allowClear placeholder="身份变更" options={(options.change_statuses || []).map((v: string) => ({ label: v, value: v }))} />
+              <Select allowClear placeholder="身份变更" options={toSelectOptions(options.change_statuses)} />
             </Form.Item>
             <div style={filterActionsStyle}>
               <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchData(1, pageSize)}>查询</Button>
@@ -497,8 +517,36 @@ const EnrollLedgersPage: React.FC = () => {
               >
                 重置
               </Button>
+              <Button icon={<MoreOutlined />} onClick={() => setFilterExpanded(value => !value)}>
+                {filterExpanded ? '收起筛选' : '更多筛选'}
+              </Button>
             </div>
           </div>
+          {filterExpanded && (
+            <div style={moreFilterRowStyle}>
+              <Form.Item name="medical_identity" noStyle>
+                <Select allowClear showSearch placeholder="医疗救助身份" options={toSelectOptions(options.medical_identities)} />
+              </Form.Item>
+              <Form.Item name="subsidy_identity" noStyle>
+                <Select allowClear showSearch placeholder="资助参保身份" options={toSelectOptions(options.subsidy_identities)} />
+              </Form.Item>
+              <Form.Item name="insurance_category" noStyle>
+                <Select allowClear showSearch placeholder="参保类别" options={toSelectOptions(options.insurance_categories)} />
+              </Form.Item>
+              <Form.Item name="is_insured" noStyle>
+                <Select allowClear placeholder="是否参保" options={yesNoOptions} />
+              </Form.Item>
+              <Form.Item name="is_eligible_for_subsidy" noStyle>
+                <Select allowClear placeholder="是否符合资助" options={yesNoPendingOptions} />
+              </Form.Item>
+              <Form.Item name="is_subsidy_obtained" noStyle>
+                <Select allowClear placeholder="是否获得资助" options={yesNoPendingOptions} />
+              </Form.Item>
+              <Form.Item name="subsidy_method" noStyle>
+                <Select allowClear showSearch placeholder="资助方式" options={toSelectOptions(options.subsidy_methods)} />
+              </Form.Item>
+            </div>
+          )}
         </Form>
       </Card>
 

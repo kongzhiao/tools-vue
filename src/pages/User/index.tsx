@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Table,
   Button,
+  Card,
   Modal,
   Form,
   Input,
@@ -22,6 +23,19 @@ import {
 import { request, useAccess, useLocation } from '@umijs/max';
 
 const { Option } = Select;
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: 6,
+  border: '1px solid #edf0f5',
+  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+};
+
+const filterToolbarStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  flexWrap: 'wrap',
+};
 
 interface User {
   id: number;
@@ -310,74 +324,78 @@ const User: React.FC = () => {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16 }} wrap>
-        <Input
-          allowClear
-          placeholder="用户名/昵称"
-          style={{ width: 220 }}
-          value={filters.keyword}
-          onChange={e => setFilters({ ...filters, keyword: e.target.value })}
-          onPressEnter={() => fetchUsers(1, pageSize)}
-        />
-        <Select
-          allowClear
-          placeholder="角色"
-          style={{ width: 180 }}
-          value={filters.role_id}
-          onChange={value => setFilters({ ...filters, role_id: value })}
-          options={roles.map(role => ({ label: role.name, value: role.id }))}
-        />
-        <Select
-          allowClear
-          placeholder="镇街"
-          style={{ width: 180 }}
-          value={filters.town_id}
-          onChange={value => setFilters({ ...filters, town_id: value })}
-          options={[
-            { label: '全局账号', value: 0 },
-            ...towns.map(town => ({ label: town.name, value: town.id })),
-          ]}
-        />
-        <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchUsers(1, pageSize)}>查询</Button>
-        <Button icon={<ReloadOutlined />} loading={loading} onClick={() => {
-          setFilters({ keyword: '', role_id: undefined, town_id: undefined });
-          setTimeout(() => fetchUsers(1, pageSize), 0);
-        }}>重置</Button>
-        {access.canCreateUser && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingUser(null);
-              form.resetFields();
-              setModalVisible(true);
-            }}
-          >
-            创建用户
-          </Button>
-        )}
-      </Space>
+      <Card size="small" style={{ ...cardStyle, marginBottom: 12 }}>
+        <div style={filterToolbarStyle}>
+          <Input
+            allowClear
+            placeholder="用户名/昵称"
+            style={{ width: 220 }}
+            value={filters.keyword}
+            onChange={e => setFilters({ ...filters, keyword: e.target.value })}
+            onPressEnter={() => fetchUsers(1, pageSize)}
+          />
+          <Select
+            allowClear
+            placeholder="角色"
+            style={{ width: 180 }}
+            value={filters.role_id}
+            onChange={value => setFilters({ ...filters, role_id: value })}
+            options={roles.map(role => ({ label: role.name, value: role.id }))}
+          />
+          <Select
+            allowClear
+            placeholder="镇街"
+            style={{ width: 180 }}
+            value={filters.town_id}
+            onChange={value => setFilters({ ...filters, town_id: value })}
+            options={[
+              { label: '全局账号', value: 0 },
+              ...towns.map(town => ({ label: town.name, value: town.id })),
+            ]}
+          />
+          <Button type="primary" icon={<SearchOutlined />} onClick={() => fetchUsers(1, pageSize)}>查询</Button>
+          <Button icon={<ReloadOutlined />} loading={loading} onClick={() => {
+            setFilters({ keyword: '', role_id: undefined, town_id: undefined });
+            setTimeout(() => fetchUsers(1, pageSize), 0);
+          }}>重置</Button>
+          {access.canCreateUser && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingUser(null);
+                form.resetFields();
+                setModalVisible(true);
+              }}
+            >
+              创建用户
+            </Button>
+          )}
+        </div>
+      </Card>
 
-      <Table
-        columns={columns}
-        dataSource={users}
-        rowKey="id"
-        loading={loading}
-        pagination={{
-          current,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total) => `共 ${total} 条记录`,
-          onChange: (page, size) => {
-            fetchUsers(page, size);
-          },
-        }}
-        locale={{
-          emptyText: '暂无数据',
-        }}
-      />
+      <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+        <Table
+          columns={columns}
+          dataSource={users}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            current,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`,
+            onChange: (page, size) => {
+              fetchUsers(page, size);
+            },
+          }}
+          locale={{
+            emptyText: '暂无数据',
+          }}
+        />
+      </Card>
 
       {/* 用户创建/编辑模态框 */}
       <Modal

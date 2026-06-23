@@ -181,105 +181,17 @@ export const layout = ({ initialState }: { initialState: any }) => {
       ignoreFlatMenu: true,
       // 使用动态菜单数据
       data: initialState?.menus || [],
-      menuFooterRender: (props: any) => {
-        if (props?.collapsed) return null;
-        
-        const React = require('react');
-        const { useState } = React;
-        const { Modal } = require('antd');
-        const { UserOutlined } = require('@ant-design/icons');
-        const ChangePasswordModal = require('@/components/ChangePasswordModal').default;
-
-        const UserFooter = () => {
-          const [visible, setVisible] = useState(false);
-          if (!initialState?.currentUser) return null;
-
-          return React.createElement(
-            'div',
-            {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                padding: '16px',
-                borderTop: '1px solid rgba(0, 0, 0, 0.06)',
-                gap: '8px',
-                width: '100%',
-                overflow: 'hidden'
-              }
-            },
-            React.createElement(UserOutlined, { style: { color: '#8c8c8c', fontSize: '18px' } }),
-            React.createElement(
-              'div',
-              { style: { flex: 1, minWidth: 0 } },
-              React.createElement(
-                'div',
-                {
-                  style: {
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }
-                },
-                initialState.currentUser.nickname || initialState.currentUser.username
-              ),
-              React.createElement(
-                'div',
-                {
-                  style: {
-                    display: 'flex',
-                    gap: '12px',
-                    marginTop: '4px'
-                  }
-                },
-                React.createElement(
-                  'a',
-                  {
-                    style: { fontSize: '12px', color: '#1677ff' },
-                    onClick: () => setVisible(true)
-                  },
-                  '修改密码'
-                ),
-                React.createElement(
-                    'a',
-                    {
-                      style: { fontSize: '12px', color: '#ff4d4f' },
-                      onClick: () => {
-                        Modal.confirm({
-                          title: '确定要退出登录吗？',
-                          content: '退出后需要重新登录才能访问系统',
-                          okText: '确定',
-                          cancelText: '取消',
-                          onOk() {
-                            localStorage.removeItem('token');
-                            window.location.href = '/login';
-                          },
-                        });
-                      }
-                    },
-                    '退出'
-                  )
-              )
-            ),
-            React.createElement(ChangePasswordModal, {
-              visible: visible,
-              onCancel: () => setVisible(false)
-            })
-          );
-        };
-
-        return React.createElement(UserFooter);
-      },
+      menuFooterRender: false,
       suppressSiderWhenMenuEmpty: true,
     },
     // 自定义右侧内容，显示任务中心和用户信息
-    rightContentRender: () => {
+    rightContentRender: (props: any) => {
       if (!initialState?.currentUser) return null;
 
       const React = require('react');
       return React.createElement(RightContent, {
-        currentUser: initialState.currentUser
+        currentUser: initialState.currentUser,
+        compact: !!props?.collapsed,
       });
     },
     logout: () => {
@@ -299,10 +211,9 @@ export const layout = ({ initialState }: { initialState: any }) => {
       // 点击logo时刷新菜单
       window.location.reload();
     },
-    // 在页面内容外层添加任务浮层
+    // 在页面内容外层添加任务浮层，默认避开左下角账户区域
     childrenRender: (children: any) => {
       const React = require('react');
-      // 只在已登录时显示浮层
       if (!initialState?.currentUser) return children;
       return React.createElement(
         React.Fragment,

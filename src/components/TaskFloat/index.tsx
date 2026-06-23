@@ -5,13 +5,24 @@ import { getTaskCount } from '@/services/task';
 import TaskCenter, { TaskCenterRef } from '@/components/TaskCenter';
 import './TaskFloat.less';
 
+const getInitialPosition = () => {
+    if (typeof window === 'undefined') {
+        return { x: 0, y: 120 };
+    }
+
+    return {
+        x: Math.max(24, window.innerWidth - 88),
+        y: Math.max(96, window.innerHeight - 180),
+    };
+};
+
 const TaskFloat: React.FC = () => {
     const taskCenterRef = useRef<TaskCenterRef>(null);
     const [taskCount, setTaskCount] = useState(0);
     const [isPolling, setIsPolling] = useState(false);
 
     // 拖动相关状态
-    const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 100 });
+    const [position, setPosition] = useState(getInitialPosition);
     const [isDragging, setIsDragging] = useState(false);
     const [hasDragged, setHasDragged] = useState(false); // 是否发生过拖动
     const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
@@ -133,7 +144,7 @@ const TaskFloat: React.FC = () => {
                 onMouseDown={handleMouseDown}
                 onClick={handleClick}
             >
-                <Tooltip title="任务中心" placement="right">
+                <Tooltip title="任务中心" placement="left">
                     <Badge count={taskCount} size="small" offset={[-2, 2]}>
                         <CloudDownloadOutlined className="task-float-icon" />
                     </Badge>
