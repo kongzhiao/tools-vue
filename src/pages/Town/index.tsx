@@ -268,6 +268,7 @@ const Town: React.FC = () => {
 
       if (res.code !== 0) throw new Error(res.msg || '导入提交失败');
       message.success('导入任务已提交，请在任务中心查看进度');
+      window.dispatchEvent(new CustomEvent('openTaskCenter'));
       setImportVisible(false);
       setFileList([]);
     } catch (error: any) {

@@ -144,3 +144,91 @@ export async function exportUnrescuedRecords(data: any) {
     data,
   });
 }
+
+export async function getRefundRecords(params?: any) {
+  return request('/api/unrescued/refund-records', { method: 'GET', params });
+}
+
+export async function getRefundStatistics(params?: any) {
+  return request('/api/unrescued/refund-records/statistics', { method: 'GET', params });
+}
+
+export async function importRefundDetail(data: FormData) {
+  return request('/api/unrescued/refund-records/import-detail', { method: 'POST', data });
+}
+
+export async function importRefundObject(data: FormData) {
+  return request('/api/unrescued/refund-records/import-object', { method: 'POST', data });
+}
+
+export async function getRefundWashConfig() {
+  return request('/api/unrescued/refund-records/wash-config', { method: 'GET' });
+}
+
+export async function saveRefundWashConfig(data: any) {
+  return request('/api/unrescued/refund-records/wash-config', { method: 'POST', data });
+}
+
+export async function executeRefundWash(data: any) {
+  return request('/api/unrescued/refund-records/wash/execute', { method: 'POST', data });
+}
+
+export async function getRefundWashStatus(params?: any) {
+  return request('/api/unrescued/refund-records/wash/status', { method: 'GET', params });
+}
+
+export async function exportRefundRecords(data: any) {
+  return request('/api/unrescued/refund-records/export', { method: 'POST', data });
+}
+
+export async function getNoticeRecords(params?: any) {
+  return request('/api/unrescued/notice-records', { method: 'GET', params });
+}
+
+export async function getNoticeStatistics(params?: any) {
+  return request('/api/unrescued/notice-records/statistics', { method: 'GET', params });
+}
+
+export async function importNoticeRecords(data: FormData) {
+  return request('/api/unrescued/notice-records/import', { method: 'POST', data });
+}
+
+export async function distributeNoticeRecords(data: any) {
+  return request('/api/unrescued/notice-records/distribute', { method: 'POST', data });
+}
+
+export async function undistributeNoticeRecords(data: any) {
+  return request('/api/unrescued/notice-records/undistribute', { method: 'POST', data });
+}
+
+export async function receiveNoticeRecords(data: any) {
+  return request('/api/unrescued/notice-records/receive', { method: 'POST', data });
+}
+
+export async function getNoticeReceiveStatus(params?: any) {
+  return request('/api/unrescued/notice-records/receive/status', { method: 'GET', params });
+}
+
+export async function notifyNoticeRecords(data: any) {
+  return request('/api/unrescued/notice-records/notify', { method: 'POST', data });
+}
+
+export async function unnotifyNoticeRecords(data: any) {
+  return request('/api/unrescued/notice-records/unnotify', { method: 'POST', data });
+}
+
+export async function feedbackNoticeRecords(data: any) {
+  return request('/api/unrescued/notice-records/feedback', { method: 'POST', data });
+}
+
+export async function saveNoticeAdminRemark(data: any) {
+  return request('/api/unrescued/notice-records/admin-remark', { method: 'POST', data });
+}
+
+export async function markNoticeReimbursement(data: any) {
+  return request('/api/unrescued/notice-records/reimbursement', { method: 'POST', data });
+}
+
+export async function exportNoticeRecords(data: any) {
+  return request('/api/unrescued/notice-records/export', { method: 'POST', data });
+}

@@ -43,6 +43,8 @@ const typeOptions = [
   { label: '病种编码', value: 'disease_code' },
   { label: '参保镇街', value: 'town_name' },
   { label: '参保原始身份', value: 'raw_identity' },
+  { label: '未参保原因', value: 'uninsured_reason' },
+  { label: '缴费金额', value: 'resident_payment_amount' },
 ];
 
 const copyToClipboard = async (text: string) => {

@@ -22,7 +22,12 @@ const tabItems = [
   { key: 'subsidy', label: '资助参保身份' },
   { key: 'medical', label: '医疗救助身份' },
   { key: 'identity_amount', label: '身份对应明细' },
+  { key: 'uninsured_reason', label: '未参保原因' },
+  { key: 'resident_payment_amount', label: '缴费金额' },
 ];
+
+const filterOptionTypes = ['uninsured_reason', 'resident_payment_amount'];
+const isFilterOptionType = (type: string) => filterOptionTypes.includes(type);
 
 const attachmentMap: Record<string, string> = {
   subsidy: 'attachment1_config',
@@ -65,6 +70,8 @@ const tableScrollXMap: Record<string, number> = {
   subsidy: 1920,
   medical: 1500,
   identity_amount: 1450,
+  uninsured_reason: 1000,
+  resident_payment_amount: 1000,
 };
 
 const actionCellStyle: React.CSSProperties = {
@@ -76,12 +83,18 @@ const actionCellStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 };
 
-const fixedActionColumnStyle: React.CSSProperties = {
-  background: '#fff',
-  boxShadow: '-8px 0 14px -14px rgba(15, 23, 42, 0.45)',
-};
-
 const buildConfigPayload = (values: any, activeType: string) => {
+  if (isFilterOptionType(activeType)) {
+    return {
+      type: activeType,
+      value: values.value,
+      label: values.label,
+      status: values.status ?? 1,
+      sort: values.sort ?? 0,
+      remark: values.remark,
+    };
+  }
+
   const common = {
     year: values.year,
     type: activeType,
@@ -143,7 +156,7 @@ const EnrollConfigsPage: React.FC = () => {
   const fetchData = async (page = current, size = pageSize) => {
     setLoading(true);
     try {
-      const values = filterForm.getFieldsValue();
+      const values = isFilterOptionType(activeType) ? {} : filterForm.getFieldsValue();
       const res = await getEnrollConfigs({
         ...values,
         type: activeType,
@@ -164,21 +177,31 @@ const EnrollConfigsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const year = filterForm.getFieldValue('year') || currentYearValue;
-    filterForm.setFieldsValue({ year });
+    if (!isFilterOptionType(activeType)) {
+      const year = filterForm.getFieldValue('year') || currentYearValue;
+      filterForm.setFieldsValue({ year });
+    }
     fetchData(1, pageSize);
   }, [activeType]);
 
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ year: filterForm.getFieldValue('year') || dayjs().year(), type: activeType, status: 1, priority: 0, sort: 0 });
+    form.setFieldsValue(
+      isFilterOptionType(activeType)
+        ? { type: activeType, status: 1, sort: 0 }
+        : { year: filterForm.getFieldValue('year') || dayjs().year(), type: activeType, status: 1, priority: 0, sort: 0 },
+    );
     setModalVisible(true);
   };
 
   const openEdit = (record: any) => {
     setEditing(record);
-    form.setFieldsValue({ ...record, type: activeType });
+    const values = { ...record, type: activeType };
+    if (activeType === 'resident_payment_amount') {
+      values.value = record.value === undefined || record.value === null ? undefined : Number(record.value);
+    }
+    form.setFieldsValue(values);
     setModalVisible(true);
   };
 
@@ -261,8 +284,6 @@ const EnrollConfigsPage: React.FC = () => {
       width: 170,
       align: 'center' as const,
       fixed: 'right' as const,
-      onHeaderCell: () => ({ style: fixedActionColumnStyle }),
-      onCell: () => ({ style: fixedActionColumnStyle }),
       render: (_: any, record: any) => (
         <span style={actionCellStyle}>
           {access.canUpdateEnrollConfigs && <Button size="small" type="link" icon={<EditOutlined />} onClick={() => openEdit(record)}>编辑</Button>}
@@ -278,6 +299,22 @@ const EnrollConfigsPage: React.FC = () => {
         </span>
       ),
     };
+
+    if (isFilterOptionType(activeType)) {
+      return [
+        {
+          title: activeType === 'uninsured_reason' ? '未参保原因' : '缴费金额',
+          dataIndex: 'value',
+          width: 200,
+          fixed: 'left' as const,
+        },
+        { title: '显示名称', dataIndex: 'label', width: 220 },
+        { title: '排序', dataIndex: 'sort', width: 100 },
+        { title: '状态', dataIndex: 'status', width: 100, render: (value: number) => value === 0 ? '停用' : '启用' },
+        { title: '备注', dataIndex: 'remark', width: 260 },
+        actionColumn,
+      ];
+    }
 
     if (activeType === 'identity_amount') {
       return [
@@ -320,16 +357,18 @@ const EnrollConfigsPage: React.FC = () => {
     <div style={{ padding: 16 }}>
       <Card style={cardStyle} bodyStyle={{ padding: 16 }}>
         <Form form={filterForm} layout="inline">
-          <Form.Item name="year">
-            <Select
-              style={{ width: 120 }}
-              options={yearOptions}
-              onChange={year => {
-                filterForm.setFieldsValue({ year });
-                fetchData(1, pageSize);
-              }}
-            />
-          </Form.Item>
+          {!isFilterOptionType(activeType) && (
+            <Form.Item name="year">
+              <Select
+                style={{ width: 120 }}
+                options={yearOptions}
+                onChange={year => {
+                  filterForm.setFieldsValue({ year });
+                  fetchData(1, pageSize);
+                }}
+              />
+            </Form.Item>
+          )}
           <Form.Item>
             <Space>
               <Button type="primary" onClick={() => fetchData(1, pageSize)}>查询</Button>
@@ -345,7 +384,7 @@ const EnrollConfigsPage: React.FC = () => {
         title={<Tabs activeKey={activeType} onChange={setActiveType} items={tabItems} />}
         extra={
           <Space>
-            {access.canImportEnrollConfigs && (
+            {access.canImportEnrollConfigs && !isFilterOptionType(activeType) && (
               <Button
                 icon={<CloudUploadOutlined />}
                 onClick={() => setImportVisible(true)}
@@ -353,7 +392,7 @@ const EnrollConfigsPage: React.FC = () => {
                 导入
               </Button>
             )}
-            {access.canCreateEnrollConfigs && (
+            {access.canCreateEnrollConfigs && !isFilterOptionType(activeType) && (
               <Button icon={<CopyOutlined />} onClick={openClone}>克隆年度</Button>
             )}
             {access.canCreateEnrollConfigs && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新增</Button>}
@@ -373,8 +412,32 @@ const EnrollConfigsPage: React.FC = () => {
 
       <Modal title={editing ? '编辑配置' : '新增配置'} open={modalVisible} onCancel={() => setModalVisible(false)} onOk={() => form.submit()} destroyOnClose>
         <Form form={form} layout="vertical" onFinish={submitForm}>
-          <Form.Item name="year" label="年份" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item>
-          {activeType === 'identity_amount' ? (
+          {!isFilterOptionType(activeType) && (
+            <Form.Item name="year" label="年份" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item>
+          )}
+          {isFilterOptionType(activeType) ? (
+            <>
+              <Form.Item
+                name="value"
+                label={activeType === 'uninsured_reason' ? '未参保原因' : '缴费金额'}
+                rules={[{ required: true }]}
+              >
+                {activeType === 'resident_payment_amount'
+                  ? <InputNumber style={{ width: '100%' }} min={0} precision={2} />
+                  : <Input />}
+              </Form.Item>
+              <Form.Item name="label" label="显示名称"><Input /></Form.Item>
+              <Form.Item name="sort" label="排序"><InputNumber style={{ width: '100%' }} /></Form.Item>
+              <Form.Item name="status" label="状态">
+                <Select
+                  options={[
+                    { label: '启用', value: 1 },
+                    { label: '停用', value: 0 },
+                  ]}
+                />
+              </Form.Item>
+            </>
+          ) : activeType === 'identity_amount' ? (
             <>
               <Form.Item name="special_identity" label="特殊人员身份" rules={[{ required: true }]}><Input /></Form.Item>
               <Form.Item name="included_identities" label="包含参保身份"><Select mode="tags" open={false} tokenSeparators={['、', ',', '，', ';', '；']} /></Form.Item>

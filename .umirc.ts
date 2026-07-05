@@ -228,6 +228,18 @@ export default defineConfig({
           access: 'canAccessUnrescuedRecords',
         },
         {
+          name: '应补应退明细',
+          path: 'refund-records',
+          component: './Unrescued/RefundRecords',
+          access: 'canAccessRefundRecords',
+        },
+        {
+          name: '下放通知',
+          path: 'notice-records',
+          component: './Unrescued/NoticeRecords',
+          access: 'canAccessNoticeRecords',
+        },
+        {
           name: '重大疾病编码',
           path: 'disease-configs',
           component: './Unrescued/DiseaseConfigs',

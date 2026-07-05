@@ -23,6 +23,159 @@
   }
 }
 
+.task-center-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-center-range-button {
+  max-width: 300px;
+}
+
+.task-center-range-text {
+  display: inline-block;
+  max-width: 238px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.task-center-range-popover {
+  z-index: 1200;
+
+  .ant-popover-inner {
+    padding: 0;
+  }
+}
+
+.task-center-range-panel {
+  display: flex;
+  width: min(820px, calc(100vw - 32px));
+  background: #fff;
+}
+
+.task-center-range-presets {
+  width: 116px;
+  padding: 8px;
+  border-right: 1px solid #f0f0f0;
+
+  .ant-btn {
+    justify-content: flex-start;
+    margin-bottom: 2px;
+    text-align: left;
+  }
+}
+
+.task-center-range-main {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+}
+
+.task-center-range-label {
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.task-center-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.task-center-calendar-panel {
+  min-width: 0;
+
+  .ant-picker-calendar {
+    border: 1px solid #edf0f5;
+    border-radius: 6px;
+  }
+
+  .ant-picker-calendar-header {
+    padding: 8px;
+  }
+
+  .ant-picker-panel {
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .ant-picker-content th,
+  .ant-picker-content td {
+    height: 28px;
+  }
+}
+
+.task-center-calendar-date-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  color: rgba(0, 0, 0, 0.88);
+  border-radius: 0;
+  transition: background 0.2s, color 0.2s;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+  }
+
+  &.in-range {
+    background: #e6f4ff;
+  }
+
+  &.range-start {
+    border-radius: 14px 0 0 14px;
+  }
+
+  &.range-end {
+    border-radius: 0 14px 14px 0;
+  }
+
+  &.range-start.range-end {
+    border-radius: 14px;
+  }
+
+  &.range-start span,
+  &.range-end span {
+    background: #1677ff;
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+.task-center-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
+
+  .ant-picker {
+    width: 128px;
+  }
+}
+
+.task-center-range-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.task-center-date-dropdown {
+  z-index: 1210;
+}
+
 /* 任务列表 */
 .task-list {
   flex: 1;

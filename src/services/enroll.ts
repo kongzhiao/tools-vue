@@ -16,8 +16,28 @@ export async function updateEnrollLedger(id: number, data: any) {
   return request(`/api/enroll/ledgers/${id}`, { method: 'PUT', data });
 }
 
+export async function confirmEnrollPaymentCheck(id: number, data?: any) {
+  return request(`/api/enroll/ledgers/${id}/payment-check-confirm`, { method: 'POST', data });
+}
+
 export async function deleteEnrollLedger(id: number) {
   return request(`/api/enroll/ledgers/${id}`, { method: 'DELETE' });
+}
+
+export async function dispatchEnrollLedgers(data: any) {
+  return request('/api/enroll/ledgers/dispatch', { method: 'POST', data });
+}
+
+export async function recallEnrollLedgers(data: any) {
+  return request('/api/enroll/ledgers/recall', { method: 'POST', data });
+}
+
+export async function getEnrollReviewBatches(params?: any) {
+  return request('/api/enroll/ledgers/review-batches', { method: 'GET', params });
+}
+
+export async function getEnrollReviewBatchItems(batchId: number, params?: any) {
+  return request(`/api/enroll/ledgers/review-batches/${batchId}/items`, { method: 'GET', params });
 }
 
 export async function importEnrollAttachment3(data: FormData) {

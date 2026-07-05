@@ -5,7 +5,7 @@ export interface TaskItem {
     title: string;
     progress: number;
     status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-    file_url: string | null;
+    has_file?: boolean;
     url_at: string | null;
     file_size: string | null;
     failure_reason?: string | null;
@@ -37,6 +37,8 @@ export async function getTaskList(params: {
     page?: number;
     page_size?: number;
     status?: number;
+    start_at?: string;
+    end_at?: string;
 }): Promise<TaskListResponse> {
     return request('/api/tasks', {
         method: 'GET',
