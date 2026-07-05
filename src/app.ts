@@ -49,6 +49,26 @@ function convertMenuData(menuData: any[]): any[] {
     });
 }
 
+function filterMenuData(menuData: any[], permissions: string[], isAdmin: boolean): any[] {
+  if (isAdmin || permissions.includes('*')) return menuData;
+
+  const permissionSet = new Set(permissions);
+
+  return menuData.reduce((result: any[], menu) => {
+    if (!menu || menu.type !== 'menu') return result;
+
+    const children = filterMenuData(menu.children || [], permissions, isAdmin);
+    if (permissionSet.has(menu.name) || children.length > 0) {
+      result.push({
+        ...menu,
+        children,
+      });
+    }
+
+    return result;
+  }, []);
+}
+
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化
 // 更多信息见文档：https://umijs.org/docs/api/runtime-config#getinitialstate
 export async function getInitialState(): Promise<{
@@ -113,23 +133,27 @@ export async function getInitialState(): Promise<{
     const data = await response.json();
     if (data.code === 0 && data.data) {
       const userData = data.data;
+      const permissions = Array.isArray(userData.permissions) ? userData.permissions : [];
+      const isAdmin = userData.username === 'admin' || userData.nickname === '超级管理员';
 
-      // 获取用户菜单
-      let menus = [];
-      try {
-        const menuResponse = await fetch(`${config.apiBaseUrl}/api/permissions/user/menus`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (menuResponse.ok) {
-          const menuData = await menuResponse.json();
-          if (menuData.code === 0) {
-            menus = convertMenuData(menuData.data || []);
+      // 优先使用用户信息接口返回的菜单，避免用户信息和菜单接口竞态导致布局抖动。
+      let menus = convertMenuData(filterMenuData(Array.isArray(userData.menus) ? userData.menus : [], permissions, isAdmin));
+      if (menus.length === 0 && !Array.isArray(userData.menus)) {
+        try {
+          const menuResponse = await fetch(`${config.apiBaseUrl}/api/permissions/user/menus`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (menuResponse.ok) {
+            const menuData = await menuResponse.json();
+            if (menuData.code === 0) {
+              menus = convertMenuData(filterMenuData(menuData.data || [], permissions, isAdmin));
+            }
           }
+        } catch (error) {
+          console.error('获取菜单失败:', error);
         }
-      } catch (error) {
-        console.error('获取菜单失败:', error);
       }
 
       return {
@@ -140,7 +164,7 @@ export async function getInitialState(): Promise<{
           nickname: userData.nickname || '',
           town_id: userData.town_id,
           town_name: userData.town_name,
-          permissions: Array.isArray(userData.permissions) ? userData.permissions : [],
+          permissions,
         },
         menus,
         initData,
@@ -179,11 +203,11 @@ export const layout = ({ initialState }: { initialState: any }) => {
       // 自定义菜单配置
       defaultOpenAll: false,
       ignoreFlatMenu: true,
-      // 使用动态菜单数据
-      data: initialState?.menus || [],
       menuFooterRender: false,
-      suppressSiderWhenMenuEmpty: true,
+      suppressSiderWhenMenuEmpty: false,
     },
+    // 使用后端返回并经前端权限二次过滤后的菜单，避免回退到静态路由菜单。
+    menuDataRender: () => initialState?.menus || [],
     // 自定义右侧内容，显示任务中心和用户信息
     rightContentRender: (props: any) => {
       if (!initialState?.currentUser) return null;
