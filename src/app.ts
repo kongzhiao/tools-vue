@@ -25,50 +25,6 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// 转换菜单数据格式为UmiJS需要的格式
-function convertMenuData(menuData: any[]): any[] {
-  return menuData
-    .filter(menu => menu?.type === 'menu' && menu?.path)
-    .map(menu => {
-      const convertedMenu: any = {
-        name: menu.name,
-        path: menu.path,
-        icon: menu.icon,
-      };
-
-      if (menu.component) {
-        convertedMenu.component = menu.component;
-      }
-
-      const childMenus = convertMenuData(menu.children || []);
-      if (childMenus.length > 0) {
-        convertedMenu.routes = childMenus;
-      }
-
-      return convertedMenu;
-    });
-}
-
-function filterMenuData(menuData: any[], permissions: string[], isAdmin: boolean): any[] {
-  if (isAdmin || permissions.includes('*')) return menuData;
-
-  const permissionSet = new Set(permissions);
-
-  return menuData.reduce((result: any[], menu) => {
-    if (!menu || menu.type !== 'menu') return result;
-
-    const children = filterMenuData(menu.children || [], permissions, isAdmin);
-    if (permissionSet.has(menu.name) || children.length > 0) {
-      result.push({
-        ...menu,
-        children,
-      });
-    }
-
-    return result;
-  }, []);
-}
-
 // 全局初始化数据配置，用于 Layout 用户信息和权限初始化
 // 更多信息见文档：https://umijs.org/docs/api/runtime-config#getinitialstate
 export async function getInitialState(): Promise<{
@@ -134,27 +90,6 @@ export async function getInitialState(): Promise<{
     if (data.code === 0 && data.data) {
       const userData = data.data;
       const permissions = Array.isArray(userData.permissions) ? userData.permissions : [];
-      const isAdmin = userData.username === 'admin' || userData.nickname === '超级管理员';
-
-      // 优先使用用户信息接口返回的菜单，避免用户信息和菜单接口竞态导致布局抖动。
-      let menus = convertMenuData(filterMenuData(Array.isArray(userData.menus) ? userData.menus : [], permissions, isAdmin));
-      if (menus.length === 0 && !Array.isArray(userData.menus)) {
-        try {
-          const menuResponse = await fetch(`${config.apiBaseUrl}/api/permissions/user/menus`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          if (menuResponse.ok) {
-            const menuData = await menuResponse.json();
-            if (menuData.code === 0) {
-              menus = convertMenuData(filterMenuData(menuData.data || [], permissions, isAdmin));
-            }
-          }
-        } catch (error) {
-          console.error('获取菜单失败:', error);
-        }
-      }
 
       return {
         name: userData.nickname || userData.username || '用户',
@@ -166,7 +101,6 @@ export async function getInitialState(): Promise<{
           town_name: userData.town_name,
           permissions,
         },
-        menus,
         initData,
       };
     }
@@ -206,8 +140,6 @@ export const layout = ({ initialState }: { initialState: any }) => {
       menuFooterRender: false,
       suppressSiderWhenMenuEmpty: false,
     },
-    // 使用后端返回并经前端权限二次过滤后的菜单，避免回退到静态路由菜单。
-    menuDataRender: () => initialState?.menus || [],
     // 自定义右侧内容，显示任务中心和用户信息
     rightContentRender: (props: any) => {
       if (!initialState?.currentUser) return null;
