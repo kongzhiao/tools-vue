@@ -30,13 +30,13 @@ const RightContent: React.FC<RightContentProps> = ({ currentUser, compact: compa
     const config = useMemo(() => getConfig(), []);
 
     const getHelpUrl = (url: string) => {
-        const apiRoot = config.apiBaseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
-        return `${apiRoot}${url}`;
+        const apiBase = config.apiBaseUrl.replace(/\/$/, '');
+        return `${apiBase}${url}`;
     };
 
     const getHelpListUrl = () => {
         const apiBase = config.apiBaseUrl.replace(/\/$/, '');
-        return apiBase.endsWith('/api') ? `${apiBase}/helps` : `${apiBase}/api/helps`;
+        return `${apiBase}/api/helps`;
     };
 
     const fetchHelpDocuments = async () => {

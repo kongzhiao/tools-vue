@@ -137,6 +137,18 @@ const compactTagSelectProps = {
 };
 
 const baseWashRules = [
+  {
+    code: 'outpatient_major_disease',
+    name: '门诊重大疾病匹配',
+    field: 'medical_category',
+    action: 'keep',
+    operator: 'compound',
+    medical_categories: ['门诊慢特病', '造口袋门诊'],
+    disease_codes: ['M00500'],
+    remark: '门诊重大疾病匹配，标记为拟通知2',
+    condition_text: '医疗类别命中配置，且病种编码命中指定编码或已启用的重大疾病编码库',
+    enabled: true,
+  },
   { code: 'medical_category_keep', name: '医疗类别', field: 'medical_category', action: 'keep', operator: 'in', values: [], remark: '门诊救助', enabled: false },
   { code: 'hospital_keyword_exclude', name: '医药机构名称', field: 'hospital_name', action: 'exclude', operator: 'contains', values: [], remark: '对象类别不符', enabled: false },
   { code: 'pool_equals_policy', name: '统筹报销金额', field: 'pool_fund_pay', action: 'exclude', operator: '=', compare_field: 'policy_fee', remark: '无救助金额', enabled: false },
@@ -496,10 +508,10 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
         clearWashTaskCache(period);
         setWashTask(null);
         if (task.status === 'completed') {
-          if (!silent) message.success('清洗任务已完成');
+          if (!silent) message.success('筛查任务已完成');
           fetchData(1, pageSize);
         } else if (!silent) {
-          message.error('清洗任务执行失败，请查看任务中心或后端日志');
+          message.error('筛查任务执行失败，请查看任务中心或后端日志');
         }
       }
     } catch (error) {
@@ -609,11 +621,11 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
       const uuid = res.data?.uuid;
       if (uuid) {
         cacheWashTask(filters.settlement_period, uuid);
-        setWashTask({ uuid, status: 'pending', progress: 0, title: `${props.title}_清洗_清洗规则` });
+        setWashTask({ uuid, status: 'pending', progress: 0, title: `${props.title}_筛查_筛查规则` });
       }
-      message.success('清洗任务已提交，执行期间不可重复提交');
+      message.success('筛查任务已提交，执行期间不可重复提交');
     } else {
-      message.error(res.message || res.msg || '清洗失败');
+      message.error(res.message || res.msg || '筛查失败');
     }
   };
 
@@ -624,8 +636,8 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
     }
 
     Modal.confirm({
-      title: '确定执行清洗规则吗？',
-      content: `将按当前已保存并启用的清洗规则处理 ${filters.settlement_period} 清算期数据。执行期间不可重复提交。`,
+      title: '确定执行筛查规则吗？',
+      content: `将按当前已保存并启用的筛查规则处理 ${filters.settlement_period} 清算期数据。执行期间不可重复提交。`,
       okText: '确认执行',
       cancelText: '再检查一下',
       onOk: submitWash,
@@ -633,7 +645,15 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
   };
 
   const handleSaveWash = async () => {
-    const res = await props.saveWashConfig({ name: `${props.title}清洗规则`, rules: washRules });
+    const invalidPriorityRule = washRules.find(rule => rule.code === 'outpatient_major_disease' && rule.enabled !== false && !(rule.medical_categories || []).length);
+    if (invalidPriorityRule) {
+      message.warning('门诊重大疾病匹配规则至少需要配置一个医疗类别');
+      return;
+    }
+    const normalizedRules = washRules.map(rule => rule.code === 'outpatient_major_disease'
+      ? { ...rule, disease_codes: (rule.disease_codes || []).map((code: string) => code.trim().toUpperCase()).filter(Boolean) }
+      : rule);
+    const res = await props.saveWashConfig({ name: `${props.title}筛查规则`, rules: normalizedRules });
     if (res.code === 0) {
       message.success('规则已保存');
       const nextRules = mergeWashRules(res.data?.data || washRules, props.kind);
@@ -760,7 +780,7 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
     { key: 'calc_reimbursement_amount', title: '进入报销金额', dataIndex: 'calc_reimbursement_amount', width: 150, align: 'right' as const, ...sortable('calc_reimbursement_amount'), render: moneyCell },
     { key: 'status', title: '状态', dataIndex: 'status', width: 110, ...sortable('status'), render: (v: string) => <Tag color={statusColors[v] || 'default'}>{v}</Tag> },
     { key: 'exclude_status', title: '剔除', dataIndex: 'exclude_status', width: 100, ...sortable('exclude_status'), render: (v: string) => <Tag color={v === '已剔除' ? 'red' : 'green'}>{v}</Tag> },
-    { key: 'exclude_rule_code', title: '命中规则', dataIndex: 'exclude_rule_code', width: 150, ...sortable('exclude_rule_code'), render: renderWashRuleName },
+    { key: 'exclude_rule_code', title: '筛查命中规则', dataIndex: 'exclude_rule_code', width: 170, ...sortable('exclude_rule_code'), render: renderWashRuleName },
     { key: 'remark', title: '系统备注', dataIndex: 'remark', width: 160, render: (v: string) => <EllipsisText value={v} maxWidth={142} /> },
     { key: 'created_at', title: '创建时间', dataIndex: 'created_at', width: 180, ...sortable('created_at'), render: dateTimeCell },
     { key: 'updated_at', title: '更新时间', dataIndex: 'updated_at', width: 180, ...sortable('updated_at'), render: dateTimeCell },
@@ -843,9 +863,66 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
     { title: '启用', dataIndex: 'enabled', width: 80, render: (v: boolean, _: any, index: number) => <Switch size="small" checked={v !== false} disabled={!washEditing} onChange={checked => updateRule(index, { enabled: checked })} /> },
     { title: '规则项', dataIndex: 'name', width: 220 },
     {
+      title: '处理方式',
+      width: 120,
+      render: (_: any, record: any, index: number) => (
+        <Select
+          style={{ width: 96 }}
+          disabled={!washEditing}
+          value={record.action || 'exclude'}
+          onChange={value => updateRule(index, { action: value })}
+          options={[
+            { label: '保留', value: 'keep' },
+            { label: '剔除', value: 'exclude' },
+          ]}
+        />
+      ),
+    },
+    {
       title: '条件值',
-      width: 360,
+      width: 520,
       render: (_: any, record: any, index: number) => {
+        if (record.code === 'outpatient_major_disease') {
+          const categoryOptions = Array.from(new Set([
+            ...medicalCategoryOptions.map((item: any) => item.value),
+            ...(record.medical_categories || []),
+          ].filter(Boolean))).map(value => ({ label: value, value }));
+          return (
+            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input value="医疗类别" disabled style={{ width: 110 }} />
+                <Select
+                  mode="tags"
+                  allowClear
+                  disabled={!washEditing}
+                  tokenSeparators={['、', ',', '，', '\n']}
+                  style={{ width: '100%' }}
+                  value={record.medical_categories || []}
+                  options={categoryOptions}
+                  onChange={medical_categories => updateRule(index, { medical_categories })}
+                />
+              </Space.Compact>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input value="指定病种编码" disabled style={{ width: 110 }} />
+                <Select
+                  mode="tags"
+                  allowClear
+                  disabled={!washEditing}
+                  tokenSeparators={['、', ',', '，', '\n']}
+                  style={{ width: '100%' }}
+                  value={record.disease_codes || []}
+                  onChange={disease_codes => updateRule(index, { disease_codes })}
+                />
+              </Space.Compact>
+              <Typography.Text type="secondary">同时自动精确匹配重大疾病编码库中已启用的病种编码。</Typography.Text>
+              <Alert
+                type="warning"
+                showIcon
+                message={<Typography.Text strong>命中后状态标记为“拟通知2”，并跳过后续规则。</Typography.Text>}
+              />
+            </Space>
+          );
+        }
         if (record.condition_text) {
           return <Typography.Text type="secondary">{record.condition_text}</Typography.Text>;
         }
@@ -870,7 +947,7 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
         );
       },
     },
-    { title: '剔除备注', width: 240, render: (_: any, record: any, index: number) => <Input disabled={!washEditing} value={record.remark} onChange={event => updateRule(index, { remark: event.target.value })} /> },
+    { title: '筛查备注', width: 240, render: (_: any, record: any, index: number) => <Input disabled={!washEditing} value={record.remark} onChange={event => updateRule(index, { remark: event.target.value })} /> },
   ];
   const statCards = [
     { key: 'total', label: '当前记录', color: '#1677ff' },
@@ -883,7 +960,7 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
   ];
   const isWashRunning = !!washTask?.uuid && ['pending', 'processing'].includes(washTask.status);
   const canExecuteWash = !isWashRunning && !washEditing && savedWashRules.some(rule => rule.enabled === true);
-  const washExecuteTip = isWashRunning ? '清洗任务正在执行中' : washEditing ? '请先保存或取消清洗规则编辑' : '请配置并启用至少一条清洗规则';
+  const washExecuteTip = isWashRunning ? '筛查任务正在执行中' : washEditing ? '请先保存或取消筛查规则编辑' : '请配置并启用至少一条筛查规则';
 
   return (
     <div>
@@ -919,7 +996,7 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
             <Select allowClear mode="multiple" {...compactTagSelectProps} placeholder="状态" value={filters.status} onChange={value => setFilters({ ...filters, status: value })} options={allStatusOptions.map(value => ({ label: value, value }))} />
             <Select allowClear placeholder="匹配状态" value={filters.match_status} onChange={value => setFilters({ ...filters, match_status: value })} options={matchStatusOptions.map(value => ({ label: value, value }))} />
             <Select allowClear placeholder="剔除" value={filters.exclude_status} onChange={value => setFilters({ ...filters, exclude_status: value })} options={['未剔除', '已剔除'].map(value => ({ label: value, value }))} />
-            <Select allowClear placeholder="命中规则" value={filters.exclude_rule_code} onChange={value => setFilters({ ...filters, exclude_rule_code: value })} options={washRuleOptions} />
+            <Select allowClear placeholder="筛查命中规则" value={filters.exclude_rule_code} onChange={value => setFilters({ ...filters, exclude_rule_code: value })} options={washRuleOptions} />
             <Select
               allowClear
               showSearch
@@ -963,10 +1040,10 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
             )}
             {canWash && (
               canExecuteWash ? (
-                <Button onClick={handleWash}>执行 清洗规则</Button>
+                <Button onClick={handleWash}>执行筛查规则</Button>
               ) : (
                 <Tooltip title={washExecuteTip}>
-                  <Button disabled loading={isWashRunning}>{isWashRunning ? '清洗执行中' : '执行 清洗规则'}</Button>
+                  <Button disabled loading={isWashRunning}>{isWashRunning ? '筛查执行中' : '执行筛查规则'}</Button>
                 </Tooltip>
               )
             )}
@@ -989,7 +1066,7 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message={`清洗任务执行中：${filters.settlement_period}`}
+          message={`筛查任务执行中：${filters.settlement_period}`}
           description={
             <Progress
               percent={Math.min(Number(washTask?.progress || 0), 99.9)}
@@ -1006,7 +1083,7 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
           items={[
             {
               key: 'wash-rules',
-              label: '清洗规则配置',
+              label: '筛查规则配置',
               children: (
                 <>
                   <Alert
@@ -1023,11 +1100,11 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
                         ) : (
                           <Button size="small" icon={<EditOutlined />} onClick={() => { setSavedWashRules(washRules); setWashEditing(true); }}>编辑</Button>
                         )}
-                        <span>{washEditing ? '可编辑规则后保存。' : '当前为只读状态，点击“编辑”后可修改清洗规则。'}</span>
+                        <span>{washEditing ? '未救助明细与应补应退明细分别保存配置；可编辑当前台账规则后保存。' : '当前为只读状态，点击“编辑”后可修改当前台账筛查规则。'}</span>
                       </Space>
                     )}
                   />
-                  <Table rowKey="code" size="small" pagination={false} dataSource={washRules} columns={washColumns} scroll={{ x: 900 }} />
+                  <Table rowKey="code" size="small" pagination={false} dataSource={washRules} columns={washColumns} scroll={{ x: 1180 }} />
                 </>
               ),
             },
