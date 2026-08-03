@@ -145,8 +145,8 @@ const baseWashRules = [
     operator: 'compound',
     medical_categories: ['门诊慢特病', '造口袋门诊'],
     disease_codes: ['M00500'],
-    remark: '门诊重大疾病匹配，标记为拟通知2',
-    condition_text: '医疗类别命中配置，且病种编码命中指定编码或已启用的重大疾病编码库',
+    remark: '门诊重大疾病匹配',
+    condition_text: '进入报销金额 > 300，且医疗类别和病种编码命中配置',
     enabled: true,
   },
   { code: 'medical_category_keep', name: '医疗类别', field: 'medical_category', action: 'keep', operator: 'in', values: [], remark: '门诊救助', enabled: false },
@@ -918,7 +918,7 @@ const LedgerPage: React.FC<LedgerPageProps> = props => {
               <Alert
                 type="warning"
                 showIcon
-                message={<Typography.Text strong>命中后状态标记为“拟通知2”，并跳过后续规则。</Typography.Text>}
+                message={<Typography.Text strong>仅金额＞300元参与匹配，命中后跳过后续规则。</Typography.Text>}
               />
             </Space>
           );
