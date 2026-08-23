@@ -1,36 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { PageContainer } from '@ant-design/pro-components';
 import {
-  Card,
-  Table,
+  CopyOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  PlusOutlined,
+  UploadOutlined,
+} from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
+import { request, useAccess } from '@umijs/max';
+import {
+  Alert,
   Button,
-  Space,
-  Modal,
+  Card,
+  Col,
   Form,
   Input,
   InputNumber,
-  Select,
   message,
+  Modal,
   Popconfirm,
-  Row,
-  Col,
-  Tag,
   Radio,
+  Row,
+  Select,
+  Space,
+  Table,
+  Tag,
   Upload,
-  Alert,
 } from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  CopyOutlined,
-  UploadOutlined,
-  DownloadOutlined,
-} from '@ant-design/icons';
-import { request, useAccess } from '@umijs/max';
-import { getConfig } from '@/config';
-import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
+import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
+import React, { useEffect, useState } from 'react';
 
 const { Option } = Select;
 
@@ -53,19 +52,28 @@ const InsuranceLevelConfigPage: React.FC = () => {
   const [data, setData] = useState<InsuranceLevelConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<InsuranceLevelConfig | null>(null);
+  const [editingRecord, setEditingRecord] =
+    useState<InsuranceLevelConfig | null>(null);
   const [form] = Form.useForm();
   const [years, setYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear(),
+  );
   const [paymentCategories, setPaymentCategories] = useState<string[]>([]);
   const [levels, setLevels] = useState<string[]>([]);
   const [templateModalVisible, setTemplateModalVisible] = useState(false);
   const [templateData, setTemplateData] = useState<InsuranceLevelConfig[]>([]);
-  const [templateYear, setTemplateYear] = useState<number>(new Date().getFullYear());
+  const [templateYear, setTemplateYear] = useState<number>(
+    new Date().getFullYear(),
+  );
   const [amountOption, setAmountOption] = useState<'keep' | 'zero'>('zero');
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [importMode, setImportMode] = useState<'overwrite' | 'append'>('append');
-  const [importYear, setImportYear] = useState<number>(new Date().getFullYear()); // 默认当前年份
+  const [importMode, setImportMode] = useState<'overwrite' | 'append'>(
+    'append',
+  );
+  const [importYear, setImportYear] = useState<number>(
+    new Date().getFullYear(),
+  ); // 默认当前年份
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [validationResult, setValidationResult] = useState<{
@@ -106,7 +114,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
   // 获取代缴类别
   const fetchPaymentCategories = async () => {
     try {
-      const response = await request('/api/insurance-level-configs/payment-categories');
+      const response = await request(
+        '/api/insurance-level-configs/payment-categories',
+      );
       if (response.code === 0) {
         setPaymentCategories(response.data);
       }
@@ -161,7 +171,8 @@ const InsuranceLevelConfigPage: React.FC = () => {
 
   // 下载模板
   const handleDownloadTemplate = () => {
-    const templateUrl = '/assets/templates/business-config/业务配置-参保档次配置.csv';
+    const templateUrl =
+      '/assets/templates/business-config/业务配置-参保档次配置.csv';
     const link = document.createElement('a');
     link.href = templateUrl;
     link.download = '业务配置-参保档次配置.csv';
@@ -205,16 +216,31 @@ const InsuranceLevelConfigPage: React.FC = () => {
       });
 
       if (response.code === 0) {
-        const { imported = 0, skipped = 0, error_count = 0, errors = [] } = response.data || {};
+        const {
+          imported = 0,
+          skipped = 0,
+          error_count = 0,
+          errors = [],
+        } = response.data || {};
         if (error_count > 0) {
           Modal.warning({
             title: '导入完成（部分失败）',
             content: (
               <div>
-                <p>成功 {imported} 条，跳过 {skipped} 条，失败 {error_count} 条</p>
+                <p>
+                  成功 {imported} 条，跳过 {skipped} 条，失败 {error_count} 条
+                </p>
                 {errors.length > 0 && (
-                  <ul style={{ maxHeight: 200, overflow: 'auto', paddingLeft: 20 }}>
-                    {errors.map((err: string, i: number) => <li key={i}>{err}</li>)}
+                  <ul
+                    style={{
+                      maxHeight: 200,
+                      overflow: 'auto',
+                      paddingLeft: 20,
+                    }}
+                  >
+                    {errors.map((err: string, i: number) => (
+                      <li key={i}>{err}</li>
+                    ))}
                   </ul>
                 )}
               </div>
@@ -237,7 +263,6 @@ const InsuranceLevelConfigPage: React.FC = () => {
       setUploading(false);
     }
   };
-
 
   // 处理文件验证
   const handleFileValidation = async (file: UploadFile) => {
@@ -289,7 +314,6 @@ const InsuranceLevelConfigPage: React.FC = () => {
     fileList,
     maxCount: 1,
   };
-
 
   useEffect(() => {
     fetchYears();
@@ -344,21 +368,25 @@ const InsuranceLevelConfigPage: React.FC = () => {
   // 批量创建
   const handleBatchCreate = async (templateYear: number) => {
     try {
-      const response = await request('/api/insurance-level-configs/batch-create', {
-        method: 'POST',
-        data: {
-          year: templateYear,
-          configs: templateData.map(item => ({
-            payment_category: item.payment_category,
-            level: item.level,
-            subsidy_amount: amountOption === 'zero' ? 0 : item.subsidy_amount,
-            personal_amount: amountOption === 'zero' ? 0 : item.personal_amount,
-            effective_period: item.effective_period,
-            payment_department: item.payment_department,
-            remark: item.remark,
-          })),
+      const response = await request(
+        '/api/insurance-level-configs/batch-create',
+        {
+          method: 'POST',
+          data: {
+            year: templateYear,
+            configs: templateData.map((item) => ({
+              payment_category: item.payment_category,
+              level: item.level,
+              subsidy_amount: amountOption === 'zero' ? 0 : item.subsidy_amount,
+              personal_amount:
+                amountOption === 'zero' ? 0 : item.personal_amount,
+              effective_period: item.effective_period,
+              payment_department: item.payment_department,
+              remark: item.remark,
+            })),
+          },
         },
-      });
+      );
       if (response.code === 0) {
         message.success('批量创建成功');
         setTemplateModalVisible(false);
@@ -394,10 +422,14 @@ const InsuranceLevelConfigPage: React.FC = () => {
       render: (text: string, record: InsuranceLevelConfig, index: number) => {
         // 计算当前代缴类别的行数
         const currentCategory = text;
-        const categoryCount = data.filter(item => item.payment_category === currentCategory).length;
+        const categoryCount = data.filter(
+          (item) => item.payment_category === currentCategory,
+        ).length;
 
         // 找到当前代缴类别在数据中的第一个索引
-        const firstIndex = data.findIndex(item => item.payment_category === currentCategory);
+        const firstIndex = data.findIndex(
+          (item) => item.payment_category === currentCategory,
+        );
 
         // 如果是当前代缴类别的第一行，则显示文本并设置rowSpan
         if (index === firstIndex) {
@@ -405,7 +437,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
             children: (
               <div>
                 <strong>{text}</strong>
-                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                <div
+                  style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
+                >
                   {categoryCount} 个档次
                 </div>
               </div>
@@ -445,7 +479,11 @@ const InsuranceLevelConfigPage: React.FC = () => {
         } else {
           color = 'orange';
         }
-        return <Tag color={color} style={{ fontWeight: 'bold' }}>{level}</Tag>;
+        return (
+          <Tag color={color} style={{ fontWeight: 'bold' }}>
+            {level}
+          </Tag>
+        );
       },
     },
     {
@@ -454,7 +492,8 @@ const InsuranceLevelConfigPage: React.FC = () => {
       key: 'subsidy_amount',
       width: 175,
       render: (amount: any) => {
-        const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+        const numAmount =
+          typeof amount === 'number' ? amount : parseFloat(amount) || 0;
         return `¥${numAmount.toFixed(2)}`;
       },
     },
@@ -464,7 +503,8 @@ const InsuranceLevelConfigPage: React.FC = () => {
       key: 'personal_amount',
       width: 175,
       render: (amount: any) => {
-        const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+        const numAmount =
+          typeof amount === 'number' ? amount : parseFloat(amount) || 0;
         return `¥${numAmount.toFixed(2)}`;
       },
     },
@@ -553,6 +593,31 @@ const InsuranceLevelConfigPage: React.FC = () => {
         `}
       </style>
       <Card>
+        <Alert
+          message="参保档次配置使用说明"
+          description={
+            <div style={{ display: 'grid', gap: 4 }}>
+              <div>
+                <strong>参保数据管理 → 导入参保原始数据：</strong>
+                按年度、代缴类别和资助代缴金额匹配参保档次。
+              </div>
+              <div>
+                <strong>参保数据管理 → 导入参保档次匹配数据：</strong>
+                按年度、已有代缴类别和个人实缴金额更新参保档次。
+              </div>
+              <div>
+                <strong>参保数据汇总 → 汇总展示：</strong>
+                使用对应年度配置生成代缴类别、档次及组合表头。
+              </div>
+              <div>
+                只有唯一匹配一条配置时才判定为已匹配；修改配置不会自动更新历史参保数据。
+              </div>
+            </div>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col>
             <Select
@@ -561,8 +626,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
               style={{ width: 120 }}
               placeholder="选择年份"
             >
-              {years.map(year => (
-                <Option key={year} value={year}>{year}年</Option>
+              {years.map((year) => (
+                <Option key={year} value={year}>
+                  {year}年
+                </Option>
               ))}
             </Select>
           </Col>
@@ -601,7 +668,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
               cancelText="取消"
               disabled={!access.canDeleteInsuranceLevelConfig}
             >
-              <Button danger disabled={!access.canDeleteInsuranceLevelConfig}>删除年份配置</Button>
+              <Button danger disabled={!access.canDeleteInsuranceLevelConfig}>
+                删除年份配置
+              </Button>
             </Popconfirm>
           </Col>
           <Col>
@@ -619,15 +688,19 @@ const InsuranceLevelConfigPage: React.FC = () => {
         {data.length > 0 && (
           <Row style={{ marginBottom: 16 }}>
             <Col>
-              <div style={{
-                background: '#f6ffed',
-                border: '1px solid #b7eb8f',
-                borderRadius: '6px',
-                padding: '8px 16px',
-                fontSize: '14px'
-              }}>
-                <strong>{selectedYear}年配置统计：</strong>
-                共 {data.length} 条配置，涉及 {new Set(data.map(item => item.payment_category)).size} 个代缴类别
+              <div
+                style={{
+                  background: '#f6ffed',
+                  border: '1px solid #b7eb8f',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                }}
+              >
+                <strong>{selectedYear}年配置统计：</strong>共 {data.length}{' '}
+                条配置，涉及{' '}
+                {new Set(data.map((item) => item.payment_category)).size}{' '}
+                个代缴类别
               </div>
             </Col>
           </Row>
@@ -643,7 +716,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
           rowClassName={(record, index) => {
             if (index === 0) return 'group-start';
             const prevRecord = data[index - 1];
-            if (prevRecord && prevRecord.payment_category === record.payment_category) {
+            if (
+              prevRecord &&
+              prevRecord.payment_category === record.payment_category
+            ) {
               return 'group-continue';
             }
             return 'group-start';
@@ -663,11 +739,7 @@ const InsuranceLevelConfigPage: React.FC = () => {
         footer={null}
         width={600}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-        >
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -682,8 +754,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
                   mode="tags"
                   maxTagCount="responsive"
                 >
-                  {paymentCategories.map(category => (
-                    <Option key={category} value={category}>{category}</Option>
+                  {paymentCategories.map((category) => (
+                    <Option key={category} value={category}>
+                      {category}
+                    </Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -701,8 +775,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
                   mode="tags"
                   maxTagCount="responsive"
                 >
-                  {levels.map(level => (
-                    <Option key={level} value={level}>{level}</Option>
+                  {levels.map((level) => (
+                    <Option key={level} value={level}>
+                      {level}
+                    </Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -758,15 +834,21 @@ const InsuranceLevelConfigPage: React.FC = () => {
               <Button
                 type="primary"
                 htmlType="submit"
-                disabled={editingRecord ? !access.canUpdateInsuranceLevelConfig : !access.canCreateInsuranceLevelConfig}
+                disabled={
+                  editingRecord
+                    ? !access.canUpdateInsuranceLevelConfig
+                    : !access.canCreateInsuranceLevelConfig
+                }
               >
                 {editingRecord ? '更新' : '创建'}
               </Button>
-              <Button onClick={() => {
-                setModalVisible(false);
-                setEditingRecord(null);
-                form.resetFields();
-              }}>
+              <Button
+                onClick={() => {
+                  setModalVisible(false);
+                  setEditingRecord(null);
+                  form.resetFields();
+                }}
+              >
                 取消
               </Button>
             </Space>
@@ -790,7 +872,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
             <Col>
               <InputNumber
                 value={templateYear}
-                onChange={(value) => setTemplateYear(value || new Date().getFullYear())}
+                onChange={(value) =>
+                  setTemplateYear(value || new Date().getFullYear())
+                }
                 style={{ width: 120 }}
                 placeholder="如：2026"
                 min={2020}
@@ -805,7 +889,10 @@ const InsuranceLevelConfigPage: React.FC = () => {
               <span>金额处理方式：</span>
             </Col>
             <Col>
-              <Radio.Group value={amountOption} onChange={(e) => setAmountOption(e.target.value)}>
+              <Radio.Group
+                value={amountOption}
+                onChange={(e) => setAmountOption(e.target.value)}
+              >
                 <Radio value="zero">设置为0（需要手动确认）</Radio>
                 <Radio value="keep">沿用原金额</Radio>
               </Radio.Group>
@@ -814,7 +901,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
           <div style={{ marginTop: 8 }}>
             <p>
               将从最近年份的配置创建{templateYear}年的配置，
-              {amountOption === 'zero' ? '金额将设为0，请确认后手动填写。' : '金额将沿用原配置。'}
+              {amountOption === 'zero'
+                ? '金额将设为0，请确认后手动填写。'
+                : '金额将沿用原配置。'}
             </p>
             <p style={{ fontSize: '12px', color: '#666' }}>
               提示：年份范围 2020-2030，可以输入新的年份（如：2026、2027等）。
@@ -823,33 +912,71 @@ const InsuranceLevelConfigPage: React.FC = () => {
         </div>
         <Table
           columns={[
-            { title: '代缴类别', dataIndex: 'payment_category', key: 'payment_category' },
+            {
+              title: '代缴类别',
+              dataIndex: 'payment_category',
+              key: 'payment_category',
+            },
             { title: '档次', dataIndex: 'level', key: 'level' },
             {
-              title: '原资助金额', dataIndex: 'subsidy_amount', key: 'subsidy_amount', render: (amount: any) => {
-                const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+              title: '原资助金额',
+              dataIndex: 'subsidy_amount',
+              key: 'subsidy_amount',
+              render: (amount: any) => {
+                const numAmount =
+                  typeof amount === 'number' ? amount : parseFloat(amount) || 0;
                 return `¥${numAmount.toFixed(2)}`;
-              }
+              },
             },
             {
-              title: '原个人金额', dataIndex: 'personal_amount', key: 'personal_amount', render: (amount: any) => {
-                const numAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+              title: '原个人金额',
+              dataIndex: 'personal_amount',
+              key: 'personal_amount',
+              render: (amount: any) => {
+                const numAmount =
+                  typeof amount === 'number' ? amount : parseFloat(amount) || 0;
                 return `¥${numAmount.toFixed(2)}`;
-              }
+              },
             },
             {
-              title: '将创建资助金额', key: 'new_subsidy_amount', render: (record: any) => {
-                const numAmount = typeof record.subsidy_amount === 'number' ? record.subsidy_amount : parseFloat(record.subsidy_amount) || 0;
+              title: '将创建资助金额',
+              key: 'new_subsidy_amount',
+              render: (record: any) => {
+                const numAmount =
+                  typeof record.subsidy_amount === 'number'
+                    ? record.subsidy_amount
+                    : parseFloat(record.subsidy_amount) || 0;
                 const newAmount = amountOption === 'zero' ? 0 : numAmount;
-                return <span style={{ color: amountOption === 'zero' ? '#ff4d4f' : '#52c41a' }}>¥{newAmount.toFixed(2)}</span>;
-              }
+                return (
+                  <span
+                    style={{
+                      color: amountOption === 'zero' ? '#ff4d4f' : '#52c41a',
+                    }}
+                  >
+                    ¥{newAmount.toFixed(2)}
+                  </span>
+                );
+              },
             },
             {
-              title: '将创建个人金额', key: 'new_personal_amount', render: (record: any) => {
-                const numAmount = typeof record.personal_amount === 'number' ? record.personal_amount : parseFloat(record.personal_amount) || 0;
+              title: '将创建个人金额',
+              key: 'new_personal_amount',
+              render: (record: any) => {
+                const numAmount =
+                  typeof record.personal_amount === 'number'
+                    ? record.personal_amount
+                    : parseFloat(record.personal_amount) || 0;
                 const newAmount = amountOption === 'zero' ? 0 : numAmount;
-                return <span style={{ color: amountOption === 'zero' ? '#ff4d4f' : '#52c41a' }}>¥{newAmount.toFixed(2)}</span>;
-              }
+                return (
+                  <span
+                    style={{
+                      color: amountOption === 'zero' ? '#ff4d4f' : '#52c41a',
+                    }}
+                  >
+                    ¥{newAmount.toFixed(2)}
+                  </span>
+                );
+              },
             },
           ]}
           dataSource={templateData}
@@ -863,7 +990,13 @@ const InsuranceLevelConfigPage: React.FC = () => {
             <Button
               type="primary"
               onClick={() => handleBatchCreate(templateYear)}
-              disabled={!templateYear || templateYear < 2020 || templateYear > 2030 || !Number.isInteger(templateYear) || !access.canCreateInsuranceLevelConfig}
+              disabled={
+                !templateYear ||
+                templateYear < 2020 ||
+                templateYear > 2030 ||
+                !Number.isInteger(templateYear) ||
+                !access.canCreateInsuranceLevelConfig
+              }
             >
               确认创建
             </Button>
@@ -895,11 +1028,15 @@ const InsuranceLevelConfigPage: React.FC = () => {
             key="submit"
             type="primary"
             onClick={handleUpload}
-            disabled={!validationResult?.valid || uploading || !access.canCreateInsuranceLevelConfig}
+            disabled={
+              !validationResult?.valid ||
+              uploading ||
+              !access.canCreateInsuranceLevelConfig
+            }
             loading={uploading}
           >
             {uploading ? '导入中' : '确认导入'}
-          </Button>
+          </Button>,
         ]}
         width={600}
       >
@@ -938,7 +1075,11 @@ const InsuranceLevelConfigPage: React.FC = () => {
             >
               {[...Array(10)].map((_, i) => {
                 const y = new Date().getFullYear() - 5 + i;
-                return <Option key={y} value={y}>{y}年</Option>;
+                return (
+                  <Option key={y} value={y}>
+                    {y}年
+                  </Option>
+                );
               })}
             </Select>
           </div>
@@ -960,9 +1101,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
         {validationResult && (
           <div style={{ marginTop: 16 }}>
             <Alert
-              message={validationResult.valid ? "文件验证通过" : "文件验证失败"}
+              message={validationResult.valid ? '文件验证通过' : '文件验证失败'}
               description={validationResult.message}
-              type={validationResult.valid ? "success" : "error"}
+              type={validationResult.valid ? 'success' : 'error'}
               showIcon
             />
             {validationResult.valid && validationResult.data && (
@@ -981,7 +1122,9 @@ const InsuranceLevelConfigPage: React.FC = () => {
                   style={{ marginTop: 8 }}
                 />
                 {validationResult.data.length > 5 && (
-                  <div style={{ textAlign: 'center', color: '#666', marginTop: 8 }}>
+                  <div
+                    style={{ textAlign: 'center', color: '#666', marginTop: 8 }}
+                  >
                     显示前5条记录...
                   </div>
                 )}
@@ -994,4 +1137,4 @@ const InsuranceLevelConfigPage: React.FC = () => {
   );
 };
 
-export default InsuranceLevelConfigPage; 
+export default InsuranceLevelConfigPage;

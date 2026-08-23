@@ -82,16 +82,24 @@ const Role: React.FC = () => {
   const handleSubmit = async (values: any) => {
     try {
       if (editingRole) {
-        await request(`/api/roles/${editingRole.id}`, {
+        const response = await request(`/api/roles/${editingRole.id}`, {
           method: 'PUT',
           data: values,
         });
+        if (response.code !== 0) {
+          message.error(response.msg || '更新失败');
+          return;
+        }
         message.success('更新成功');
       } else {
-        await request('/api/roles', {
+        const response = await request('/api/roles', {
           method: 'POST',
           data: values,
         });
+        if (response.code !== 0) {
+          message.error(response.msg || '创建失败');
+          return;
+        }
         message.success('创建成功');
       }
       setModalVisible(false);
@@ -105,9 +113,13 @@ const Role: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await request(`/api/roles/${id}`, {
+      const response = await request(`/api/roles/${id}`, {
         method: 'DELETE',
       });
+      if (response.code !== 0) {
+        message.error(response.msg || '删除失败');
+        return;
+      }
       message.success('删除成功');
       fetchRoles();
     } catch (error) {
@@ -540,7 +552,7 @@ const EllipsisText: React.FC<{ value?: any; maxWidth?: number | string }> = ({ v
               分配权限
             </Button>
           )}
-          {access.canDeleteRole && (
+          {access.canDeleteRole && record.name !== '管理员' && (
             <Popconfirm title="确定要删除这个角色吗？" onConfirm={() => handleDelete(record.id)} okText="确定" cancelText="取消">
               <Button type="link" danger icon={<DeleteOutlined />}>
                 删除
@@ -603,7 +615,10 @@ const EllipsisText: React.FC<{ value?: any; maxWidth?: number | string }> = ({ v
             label="角色名称"
             rules={[{ required: true, message: '请输入角色名称' }]}
           >
-            <Input placeholder="请输入角色名称" />
+            <Input
+              placeholder="请输入角色名称"
+              disabled={editingRole?.name === '管理员'}
+            />
           </Form.Item>
 
           <Form.Item

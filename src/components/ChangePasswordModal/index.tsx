@@ -34,6 +34,8 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         } else {
           // 默认逻辑：清除token并跳转登录
           localStorage.removeItem('token');
+          localStorage.removeItem('umi_initial_state');
+          sessionStorage.clear();
           window.location.href = '/login';
         }
       } else {
@@ -53,7 +55,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       onOk={handleOk}
       onCancel={onCancel}
       confirmLoading={loading}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}
@@ -72,7 +74,9 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           label="新密码"
           rules={[
             { required: true, message: '请输入新密码' },
-            { min: 6, message: '新密码不能少于6位' }
+            { min: 8, message: '新密码不能少于8位' },
+            { pattern: /[A-Za-z]/, message: '新密码必须包含字母' },
+            { pattern: /[^A-Za-z0-9\s]/, message: '新密码必须包含特殊符号' },
           ]}
         >
           <Input.Password placeholder="请输入新密码" />

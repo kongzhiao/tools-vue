@@ -1,33 +1,30 @@
-import React, { useState, useEffect } from 'react';
 import {
-  Card,
-  Table,
+  DeleteOutlined,
+  EditOutlined,
+  InfoCircleOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  UploadOutlined,
+} from '@ant-design/icons';
+import { request, useAccess } from '@umijs/max';
+import {
+  Alert,
   Button,
-  Modal,
+  Card,
+  Col,
   Form,
   Input,
   message,
+  Modal,
   Popconfirm,
-  Space,
-  Tag,
-  Select,
   Row,
-  Col,
-  Tooltip,
-  Divider,
-  Alert
+  Select,
+  Space,
+  Table,
+  Tag,
 } from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  SwapOutlined,
-  InfoCircleOutlined,
-  UploadOutlined
-} from '@ant-design/icons';
-import { request, useAccess } from '@umijs/max';
+import React, { useEffect, useState } from 'react';
 import ImportModal from './ImportModal';
 
 const { Option } = Select;
@@ -48,7 +45,9 @@ const CategoryConversion: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [editingItem, setEditingItem] = useState<CategoryConversion | null>(null);
+  const [editingItem, setEditingItem] = useState<CategoryConversion | null>(
+    null,
+  );
   const [form] = Form.useForm();
 
   // 权限检查
@@ -84,12 +83,17 @@ const CategoryConversion: React.FC = () => {
       });
 
       if (taxStandardFilter) params.append('tax_standard', taxStandardFilter);
-      if (medicalExportFilter) params.append('medical_export_standard', medicalExportFilter);
-      if (nationalDictFilter) params.append('national_dict_name', nationalDictFilter);
+      if (medicalExportFilter)
+        params.append('medical_export_standard', medicalExportFilter);
+      if (nationalDictFilter)
+        params.append('national_dict_name', nationalDictFilter);
 
-      const response = await request(`/api/category-conversions?${params.toString()}`, {
-        method: 'GET',
-      });
+      const response = await request(
+        `/api/category-conversions?${params.toString()}`,
+        {
+          method: 'GET',
+        },
+      );
 
       if (response.code === 0) {
         setData(response.data.list || []);
@@ -188,26 +192,24 @@ const CategoryConversion: React.FC = () => {
       dataIndex: 'medical_export_standard',
       key: 'medical_export_standard',
       width: 250,
-      render: (text: string) => (
+      render: (text: string) =>
         text ? (
           <Tag color="blue">{text}</Tag>
         ) : (
           <span style={{ color: '#999' }}>-</span>
-        )
-      ),
+        ),
     },
     {
       title: '国家字典值名称',
       dataIndex: 'national_dict_name',
       key: 'national_dict_name',
       width: 250,
-      render: (text: string) => (
+      render: (text: string) =>
         text ? (
           <Tag color="green">{text}</Tag>
         ) : (
           <span style={{ color: '#999' }}>-</span>
-        )
-      ),
+        ),
     },
     {
       title: '创建时间',
@@ -228,12 +230,22 @@ const CategoryConversion: React.FC = () => {
       render: (_: any, record: CategoryConversion) => (
         <Space size="middle">
           {access.canUpdateCategoryConversion && (
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openModal(record)}>
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => openModal(record)}
+            >
               编辑
             </Button>
           )}
           {access.canDeleteCategoryConversion && (
-            <Popconfirm title="确定要删除这个类别转换吗？" onConfirm={() => handleDelete(record.id)} okText="确定" cancelText="取消">
+            <Popconfirm
+              title="确定要删除这个类别转换吗？"
+              onConfirm={() => handleDelete(record.id)}
+              okText="确定"
+              cancelText="取消"
+            >
               <Button type="link" size="small" danger icon={<DeleteOutlined />}>
                 删除
               </Button>
@@ -254,7 +266,21 @@ const CategoryConversion: React.FC = () => {
         {/* 说明信息 */}
         <Alert
           message="类别转换说明"
-          description="以税务代缴数据口径为标准，建立与医保数据导出对象口径和国家字典值名称的映射关系。当遇到医保数据导出对象口径或国家字典值名称时，会自动替换为对应的税务代缴数据口径。"
+          description={
+            <div style={{ display: 'grid', gap: 4 }}>
+              <div>
+                <strong>参保数据管理 → 导入参保原始数据：</strong>
+                将代缴类别统一转换为税务代缴数据口径，再参与参保档次匹配。
+              </div>
+              <div>
+                <strong>参保数据管理 → 导入匹配救助身份和认定区数据：</strong>
+                将资助身份统一转换为税务代缴数据口径，并据此判断身份是否匹配。
+              </div>
+              <div>
+                税务代缴数据口径、医保数据导出对象口径或国家字典值名称任意一项精确命中，均转换为对应的税务代缴数据口径。
+              </div>
+            </div>
+          }
           type="info"
           showIcon
           icon={<InfoCircleOutlined />}
@@ -296,19 +322,30 @@ const CategoryConversion: React.FC = () => {
             </Col>
             <Col xs={24} sm={12} md={8} lg={6}>
               <Space wrap>
-                <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+                <Button
+                  type="primary"
+                  icon={<SearchOutlined />}
+                  onClick={handleSearch}
+                >
                   搜索
                 </Button>
                 <Button icon={<ReloadOutlined />} onClick={handleReset}>
                   重置
                 </Button>
                 {access.canCreateCategoryConversion && (
-                  <Button icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)}>
+                  <Button
+                    icon={<UploadOutlined />}
+                    onClick={() => setImportModalVisible(true)}
+                  >
                     导入
                   </Button>
                 )}
                 {access.canCreateCategoryConversion && (
-                  <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => openModal()}
+                  >
                     创建转换规则
                   </Button>
                 )}
@@ -338,7 +375,8 @@ const CategoryConversion: React.FC = () => {
         />
       </Card>
 
-      {(access.canCreateCategoryConversion || access.canUpdateCategoryConversion) && (
+      {(access.canCreateCategoryConversion ||
+        access.canUpdateCategoryConversion) && (
         <Modal
           title={editingItem ? '编辑类别转换' : '创建类别转换'}
           open={modalVisible}
@@ -349,46 +387,48 @@ const CategoryConversion: React.FC = () => {
           footer={null}
           width={600}
         >
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
-          <Form.Item
-            name="tax_standard"
-            label="税务代缴数据口径（标准值）"
-            rules={[{ required: true, message: '请输入税务代缴数据口径' }]}
-            extra="这是转换后的标准值"
-          >
-            <Input placeholder="请输入税务代缴数据口径" />
-          </Form.Item>
+          <Form form={form} onFinish={handleSubmit} layout="vertical">
+            <Form.Item
+              name="tax_standard"
+              label="税务代缴数据口径（标准值）"
+              rules={[{ required: true, message: '请输入税务代缴数据口径' }]}
+              extra="这是转换后的标准值"
+            >
+              <Input placeholder="请输入税务代缴数据口径" />
+            </Form.Item>
 
-          <Form.Item
-            name="medical_export_standard"
-            label="医保数据导出对象口径"
-            extra="当遇到此值时，将转换为上面的税务代缴数据口径"
-          >
-            <Input placeholder="请输入医保数据导出对象口径" />
-          </Form.Item>
+            <Form.Item
+              name="medical_export_standard"
+              label="医保数据导出对象口径"
+              extra="当遇到此值时，将转换为上面的税务代缴数据口径"
+            >
+              <Input placeholder="请输入医保数据导出对象口径" />
+            </Form.Item>
 
-          <Form.Item
-            name="national_dict_name"
-            label="国家字典值名称"
-            extra="当遇到此值时，将转换为上面的税务代缴数据口径"
-          >
-            <Input placeholder="请输入国家字典值名称" />
-          </Form.Item>
+            <Form.Item
+              name="national_dict_name"
+              label="国家字典值名称"
+              extra="当遇到此值时，将转换为上面的税务代缴数据口径"
+            >
+              <Input placeholder="请输入国家字典值名称" />
+            </Form.Item>
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                {editingItem ? '更新' : '创建'}
-              </Button>
-              <Button onClick={() => {
-                setModalVisible(false);
-                form.resetFields();
-              }}>
-                取消
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  {editingItem ? '更新' : '创建'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setModalVisible(false);
+                    form.resetFields();
+                  }}
+                >
+                  取消
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
         </Modal>
       )}
 
@@ -405,4 +445,4 @@ const CategoryConversion: React.FC = () => {
   );
 };
 
-export default CategoryConversion; 
+export default CategoryConversion;

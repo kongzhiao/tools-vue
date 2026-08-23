@@ -16,9 +16,10 @@ export default defineConfig({
   // 添加代理配置
   proxy: {
     '/api': {
-      target: process.env.NODE_ENV === 'test'
-        ? 'http://47.109.34.185:9510'
-        : process.env.NODE_ENV === 'production'
+      target:
+        process.env.NODE_ENV === 'test'
+          ? 'http://47.109.34.185:9510'
+          : process.env.NODE_ENV === 'production'
           ? 'https://api.example.com'
           : 'http://localhost:9501',
       changeOrigin: true,
@@ -27,7 +28,9 @@ export default defineConfig({
   },
   // 添加define配置，在构建时注入环境变量
   define: {
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    'process.env.NODE_ENV': JSON.stringify(
+      process.env.NODE_ENV || 'development',
+    ),
     // 移除API_BASE_URL的define配置，避免与我们的配置系统冲突
   },
   layout: {
@@ -125,32 +128,6 @@ export default defineConfig({
       ],
     },
     {
-      name: '业务配置',
-      path: '/business-config',
-      icon: 'SettingOutlined',
-      routes: [
-        {
-          name: '类别转换配置',
-          path: 'config/category-conversion',
-          component: './BussinessConfig/CategoryConversion',
-          access: 'canAccessCategoryConversion',
-        },
-        {
-          name: '参保档次配置',
-          path: 'config/insurance-level-config',
-          component: './BussinessConfig/InsuranceLevelConfig',
-          access: 'canAccessInsuranceLevelConfig',
-        },
-        /** 优抚救助 2025-12-20 */
-        {
-          name: '类别额度配置',
-          path: 'config/category-money-config',
-          component: './BussinessConfig/CategoryMoneyConfig',
-          access: 'canAccessCategoryMoneyConfig',
-        },
-      ],
-    },
-    {
       name: '数据核实',
       path: '/data-verification',
       icon: 'AuditOutlined',
@@ -179,6 +156,18 @@ export default defineConfig({
           path: 'insurance-summary',
           component: './DataVerification/InsuranceSummary',
           access: 'canAccessInsuranceSummary',
+        },
+        {
+          name: '类别转换配置',
+          path: 'category-conversion',
+          component: './BussinessConfig/CategoryConversion',
+          access: 'canAccessCategoryConversion',
+        },
+        {
+          name: '参保档次配置',
+          path: 'insurance-level-config',
+          component: './BussinessConfig/InsuranceLevelConfig',
+          access: 'canAccessInsuranceLevelConfig',
         },
       ],
     },
@@ -273,13 +262,39 @@ export default defineConfig({
       ],
     },
 
-    /** 优抚救助 2025-12-20 */
     {
       name: '联网结算',
-      path: '/yf/settlement-online',
-      component: './YfSettlement/Online',
+      path: '/yf',
       icon: 'GlobalOutlined',
-      access: 'canAccessOnlineSettlement',
+      routes: [
+        {
+          name: '联网结算明细',
+          path: 'settlement-online',
+          component: './YfSettlement/Online',
+          access: 'canAccessOnlineSettlement',
+        },
+        {
+          name: '类别额度配置',
+          path: 'category-money-config',
+          component: './BussinessConfig/CategoryMoneyConfig',
+          access: 'canAccessCategoryMoneyConfig',
+        },
+      ],
+    },
+    {
+      path: '/business-config/config/category-conversion',
+      redirect: '/data-verification/category-conversion',
+      hideInMenu: true,
+    },
+    {
+      path: '/business-config/config/insurance-level-config',
+      redirect: '/data-verification/insurance-level-config',
+      hideInMenu: true,
+    },
+    {
+      path: '/business-config/config/category-money-config',
+      redirect: '/yf/category-money-config',
+      hideInMenu: true,
     },
   ],
   npmClient: 'pnpm',

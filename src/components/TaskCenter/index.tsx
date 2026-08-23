@@ -328,6 +328,7 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
     const renderTaskItem = (record: TaskItem) => {
         const statusConfig = STATUS_CONFIG[record.status] || { color: 'default', text: record.status };
         const isCompleted = record.status === 'completed';
+        const isProcessing = record.status === 'processing';
         const percent = record.progress || 0;
 
         // 计算有效期（url_at + 7天）。只有有文件产出的任务才展示下载相关信息。
@@ -355,7 +356,7 @@ const TaskCenter = forwardRef<TaskCenterRef, TaskCenterProps>(({ onCountChange }
                     {/* 内嵌百分比进度条 */}
                     <div className="progress-bar">
                         <div
-                            className="progress-inner"
+                            className={`progress-inner${isProcessing ? ' is-processing' : ''}`}
                             style={{ width: `${percent}%`, backgroundColor: progressColor }}
                         >
                             {percent >= 20 && <span className="progress-text">{percentText}</span>}

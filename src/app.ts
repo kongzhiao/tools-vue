@@ -1,10 +1,12 @@
 // 运行时配置
-import { RuntimeConfig } from '@umijs/max';
-import { message, Popconfirm, Modal } from 'antd';
+import { request as umiRequest, RuntimeConfig } from '@umijs/max';
+import React from 'react';
+import { Input, message, Modal } from 'antd';
 import VConsole from 'vconsole';
 import { getConfig } from './config';
 import RightContent from '@/components/RightContent';
 import TaskFloat from '@/components/TaskFloat';
+import WorkspaceTabs from '@/components/WorkspaceTabs';
 // VConsole 已关闭
 // if (process.env.NODE_ENV === 'development') {
 //   new VConsole();
@@ -12,6 +14,65 @@ import TaskFloat from '@/components/TaskFloat';
 
 // 获取当前环境配置
 const config = getConfig();
+
+let sessionReauthPromise: Promise<boolean> | null = null;
+
+const clearLoginState = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('umi_initial_state');
+  sessionStorage.clear();
+};
+
+const requestSessionReauth = (authAction: string, prompt: string): Promise<boolean> => {
+  if (sessionReauthPromise) return sessionReauthPromise;
+
+  sessionReauthPromise = new Promise<boolean>((resolve) => {
+    let code = '';
+    const needsTotp = authAction === 'reauth_totp';
+
+    Modal.confirm({
+      title: '会话安全验证',
+      content: needsTotp
+        ? React.createElement(Input, {
+          placeholder: '请输入6位动态验证码',
+          maxLength: 6,
+          inputMode: 'numeric',
+          autoComplete: 'one-time-code',
+          onChange: (event: React.ChangeEvent<HTMLInputElement>) => { code = event.target.value; },
+        })
+        : prompt,
+      okText: '验证并继续',
+      cancelText: '退出登录',
+      maskClosable: false,
+      async onOk() {
+        const sessionToken = localStorage.getItem('token') || '';
+        const response = await fetch(`${config.apiBaseUrl}/api/auth/session/reauth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_token: sessionToken, code }),
+        });
+        const data = await response.json();
+        if (data.code !== 0 || !data.data?.token) {
+          message.error(data.msg || '会话验证失败');
+          throw new Error(data.msg || '会话验证失败');
+        }
+
+        localStorage.setItem('token', data.data.token);
+        message.success('验证成功，会话已续期');
+        sessionReauthPromise = null;
+        resolve(true);
+      },
+      onCancel() {
+        clearLoginState();
+        sessionReauthPromise = null;
+        resolve(false);
+        window.location.href = '/login';
+      },
+    });
+  });
+
+  return sessionReauthPromise;
+};
 
 // 抑制findDOMNode警告
 if (typeof window !== 'undefined') {
@@ -35,6 +96,7 @@ export async function getInitialState(): Promise<{
     nickname: string;
     town_id?: number;
     town_name?: string;
+    admin_capability?: boolean;
     permissions: string[];
   };
   menus?: any[];
@@ -61,7 +123,7 @@ export async function getInitialState(): Promise<{
   }
 
   // 如果是登录页面，不需要获取用户信息
-  if (window.location.pathname === '/login') {
+  if (window.location.pathname === '/login' || window.location.pathname === '/m/login') {
     return { name: '未登录', menus: [], initData };
   }
 
@@ -76,17 +138,24 @@ export async function getInitialState(): Promise<{
   }
 
   try {
-    const response = await fetch(`${config.apiBaseUrl}/api/user/info`, {
+    let response = await fetch(`${config.apiBaseUrl}/api/user/info`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
     });
-
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
+    let data = await response.json();
+    if (data.code === 401 && data.data?.reauth_required) {
+      const renewed = await requestSessionReauth(data.data.auth_action, data.msg || '会话已过期');
+      if (renewed) {
+        const renewedToken = localStorage.getItem('token') || '';
+        response = await fetch(`${config.apiBaseUrl}/api/user/info`, {
+          headers: { 'Authorization': `Bearer ${renewedToken}` },
+        });
+        data = await response.json();
+      }
     }
 
-    const data = await response.json();
+    if (!response.ok) throw new Error('Network response was not ok');
     if (data.code === 0 && data.data) {
       const userData = data.data;
       const permissions = Array.isArray(userData.permissions) ? userData.permissions : [];
@@ -99,6 +168,7 @@ export async function getInitialState(): Promise<{
           nickname: userData.nickname || '',
           town_id: userData.town_id,
           town_name: userData.town_name,
+          admin_capability: Boolean(userData.admin_capability),
           permissions,
         },
         initData,
@@ -109,9 +179,7 @@ export async function getInitialState(): Promise<{
   }
 
   // 如果获取用户信息失败，清除token并重定向到登录页
-  localStorage.removeItem('token');
-  localStorage.removeItem('umi_initial_state');
-  sessionStorage.clear();
+  clearLoginState();
   if (window.location.pathname !== '/login') {
     window.location.href = '/login';
   }
@@ -125,6 +193,10 @@ export const layout = ({ initialState }: { initialState: any }) => {
     title: appName,
     logo: 'https://img.alicdn.com/tfs/TB1YHEpwUT1gK0jSZFhXXaAtVXa-28-27.svg',
     layout: 'side', // 强制设置为侧边模式以确保看到左下角
+    contentStyle: {
+      paddingBlock: 0,
+      paddingInline: 0,
+    },
     // 自定义页面标题
     pageTitleRender: (props: any, defaultPageTitle: any, info: any) => {
       if (info?.pageName) {
@@ -156,9 +228,17 @@ export const layout = ({ initialState }: { initialState: any }) => {
         content: '退出后需要重新登录才能访问系统',
         okText: '确定',
         cancelText: '取消',
-        onOk() {
-          localStorage.removeItem('token');
-          window.location.href = '/login';
+        async onOk() {
+          const token = localStorage.getItem('token');
+          try {
+            await fetch(`${config.apiBaseUrl}/api/logout`, {
+              method: 'POST',
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            });
+          } finally {
+            clearLoginState();
+            window.location.href = '/login';
+          }
         },
       });
     },
@@ -174,7 +254,11 @@ export const layout = ({ initialState }: { initialState: any }) => {
       return React.createElement(
         React.Fragment,
         null,
-        children,
+        React.createElement(
+          WorkspaceTabs,
+          { userId: initialState.currentUser.id },
+          children,
+        ),
         React.createElement(TaskFloat)
       );
     },
@@ -185,18 +269,21 @@ export const layout = ({ initialState }: { initialState: any }) => {
 let isRedirecting = false;
 
 // 统一处理登录失效
-const handleUnauthenticated = (errorMessage: string = '登录已失效，请重新登录') => {
+const handleUnauthenticated = (data: any = {}) => {
+  const authAction = data?.data?.auth_action;
+  if (data?.data?.reauth_required && (authAction === 'reauth_totp' || authAction === 'reauth')) {
+    requestSessionReauth(authAction, data.msg || '会话已过期');
+    return;
+  }
   if (isRedirecting) return;
   isRedirecting = true;
 
   Modal.error({
     title: '登录失效',
-    content: errorMessage,
+    content: data.msg || data.message || '登录已失效，请重新登录',
     okText: '重新登录',
     onOk: () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('umi_initial_state');
-      sessionStorage.clear();
+      clearLoginState();
       window.location.href = '/login';
     },
   });
@@ -215,9 +302,7 @@ export const request = {
       const msg = error.data?.msg || error.data?.message || '';
 
       if (status === 401 || bizCode === 401) {
-        if (msg.toLowerCase().includes('token') || status === 401) {
-          handleUnauthenticated(msg || '登录失效，请重新登录');
-        }
+        handleUnauthenticated(error.data || { msg: msg || '登录失效，请重新登录' });
       }
     },
     errorThrower: () => { },
@@ -232,14 +317,30 @@ export const request = {
     },
   ],
   responseInterceptors: [
-    (response: any) => {
+    async (response: any) => {
       const { data, status } = response;
       // 兼容业务代码返回 401 的场景
       if (status === 401 || data?.code === 401) {
-        const msg = data?.msg || data?.message || '';
-        if (msg.toLowerCase().includes('token') || status === 401) {
-          handleUnauthenticated(msg || '登录失效，请重新登录');
+        const authAction = data?.data?.auth_action;
+        const canReauth = data?.data?.reauth_required
+          && (authAction === 'reauth_totp' || authAction === 'reauth');
+        const originalConfig = response.config || {};
+        if (canReauth && !originalConfig.__sessionRetried) {
+          const renewed = await requestSessionReauth(authAction, data.msg || '会话已过期');
+          if (renewed) {
+            const token = localStorage.getItem('token') || '';
+            return umiRequest(originalConfig.url || '', {
+              ...originalConfig,
+              headers: {
+                ...(originalConfig.headers || {}),
+                Authorization: `Bearer ${token}`,
+              },
+              __sessionRetried: true,
+              getResponse: true,
+            });
+          }
         }
+        handleUnauthenticated(data || { msg: '登录失效，请重新登录' });
       }
       return response;
     },

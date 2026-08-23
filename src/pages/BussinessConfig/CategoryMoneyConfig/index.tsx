@@ -1,43 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { PageContainer } from '@ant-design/pro-components';
 import {
-  Card,
-  Table,
+  cloneCategoryQuotas,
+  createCategoryQuota,
+  deleteCategoryQuota,
+  getCategoryQuotas,
+  getQuotaYears,
+  updateCategoryQuota,
+} from '@/services/yfSettlement';
+import {
+  CloudDownloadOutlined,
+  CloudUploadOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
+import { request, useAccess } from '@umijs/max';
+import {
+  Alert,
   Button,
-  Space,
-  Modal,
+  Card,
   Form,
   Input,
   InputNumber,
-  Select,
   message,
+  Modal,
   Popconfirm,
-  Row,
-  Col,
-  Upload,
   Radio,
-  Alert,
+  Select,
+  Space,
+  Table,
   Typography,
+  Upload,
 } from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  CopyOutlined,
-  CloudUploadOutlined,
-  CloudDownloadOutlined,
-  InboxOutlined,
-} from '@ant-design/icons';
-import { request, useAccess } from '@umijs/max';
-import {
-  getCategoryQuotas,
-  createCategoryQuota,
-  updateCategoryQuota,
-  deleteCategoryQuota,
-  getQuotaYears,
-  cloneCategoryQuotas,
-} from '@/services/yfSettlement';
 import type { UploadFile } from 'antd/es/upload/interface';
+import React, { useEffect, useState } from 'react';
 
 const { Option } = Select;
 
@@ -54,17 +51,23 @@ const CategoryMoneyConfigPage: React.FC = () => {
   const [data, setData] = useState<CategoryQuota[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<CategoryQuota | null>(null);
+  const [editingRecord, setEditingRecord] = useState<CategoryQuota | null>(
+    null,
+  );
   const [form] = Form.useForm();
 
   const [years, setYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear(),
+  );
 
   const [cloneModalVisible, setCloneModalVisible] = useState(false);
   const [cloneForm] = Form.useForm();
 
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [importMode, setImportMode] = useState<'overwrite' | 'append'>('append');
+  const [importMode, setImportMode] = useState<'overwrite' | 'append'>(
+    'append',
+  );
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -87,7 +90,10 @@ const CategoryMoneyConfigPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await getCategoryQuotas({ year: selectedYear, page_size: 1000 });
+      const res = await getCategoryQuotas({
+        year: selectedYear,
+        page_size: 1000,
+      });
       if (res.code === 0) {
         setData(res.data.list || []);
       }
@@ -187,7 +193,7 @@ const CategoryMoneyConfigPage: React.FC = () => {
       title: '补助限额金额（元/年）',
       dataIndex: 'quota_amount',
       key: 'quota_amount',
-      render: (val: any) => `¥${Number(val || 0).toFixed(2)}`
+      render: (val: any) => `¥${Number(val || 0).toFixed(2)}`,
     },
     { title: '备注', dataIndex: 'remark', key: 'remark' },
     {
@@ -207,8 +213,13 @@ const CategoryMoneyConfigPage: React.FC = () => {
           >
             编辑
           </Button>
-          <Popconfirm title="确定删除吗？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
+          <Popconfirm
+            title="确定删除吗？"
+            onConfirm={() => handleDelete(record.id)}
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
           </Popconfirm>
         </Space>
       ),
@@ -218,6 +229,29 @@ const CategoryMoneyConfigPage: React.FC = () => {
   return (
     <PageContainer>
       <Card>
+        <Alert
+          message="类别额度配置使用说明"
+          description={
+            <div style={{ display: 'grid', gap: 4 }}>
+              <div>
+                <strong>联网结算 → 明细导入：</strong>
+                按费款所属年份和优抚类别匹配每人每年的补助限额，并计算本次补助、剩余额度和支付状态。
+              </div>
+              <div>
+                <strong>联网结算 → 重新计算：</strong>
+                配置变更后，按页面筛选范围重新计算已有结算明细。
+              </div>
+              <div>
+                <strong>联网结算 → 优抚类别筛选：</strong>
+                提供对应年度的优抚类别选项。
+              </div>
+              <div>修改额度不会自动更新已有结算结果，需要执行重新计算。</div>
+            </div>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
         <Space style={{ marginBottom: 16 }}>
           <Select
             placeholder="选择年份"
@@ -225,9 +259,13 @@ const CategoryMoneyConfigPage: React.FC = () => {
             value={selectedYear}
             onChange={setSelectedYear}
           >
-            {[...new Set([...years, new Date().getFullYear()])].sort((a, b) => b - a).map(y => (
-              <Option key={y} value={y}>{y}年</Option>
-            ))}
+            {[...new Set([...years, new Date().getFullYear()])]
+              .sort((a, b) => b - a)
+              .map((y) => (
+                <Option key={y} value={y}>
+                  {y}年
+                </Option>
+              ))}
           </Select>
           <Button
             type="primary"
@@ -274,10 +312,18 @@ const CategoryMoneyConfigPage: React.FC = () => {
         onOk={() => form.submit()}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item name="category" label="优抚类别" rules={[{ required: true }]}>
+          <Form.Item
+            name="category"
+            label="优抚类别"
+            rules={[{ required: true }]}
+          >
             <Input placeholder="输入优抚类别名称" />
           </Form.Item>
-          <Form.Item name="quota_amount" label="补助限额 (元/年)" rules={[{ required: true }]}>
+          <Form.Item
+            name="quota_amount"
+            label="补助限额 (元/年)"
+            rules={[{ required: true }]}
+          >
             <InputNumber style={{ width: '100%' }} precision={2} min={0} />
           </Form.Item>
           <Form.Item name="remark" label="备注">
@@ -294,15 +340,29 @@ const CategoryMoneyConfigPage: React.FC = () => {
         onOk={() => cloneForm.submit()}
       >
         <Form form={cloneForm} layout="vertical" onFinish={handleClone}>
-          <Form.Item name="from_year" label="源年份" rules={[{ required: true }]}>
+          <Form.Item
+            name="from_year"
+            label="源年份"
+            rules={[{ required: true }]}
+          >
             <Select placeholder="选择来源年份">
-              {years.map(y => <Option key={y} value={y}>{y}年</Option>)}
+              {years.map((y) => (
+                <Option key={y} value={y}>
+                  {y}年
+                </Option>
+              ))}
             </Select>
           </Form.Item>
-          <Form.Item name="to_year" label="目标年份" rules={[{ required: true }]}>
+          <Form.Item
+            name="to_year"
+            label="目标年份"
+            rules={[{ required: true }]}
+          >
             <InputNumber style={{ width: '100%' }} placeholder="输入目标年份" />
           </Form.Item>
-          <p style={{ color: '#fa8c16' }}>* 克隆会将源年份的所有类别及限额复制到目标年份。</p>
+          <p style={{ color: '#fa8c16' }}>
+            * 克隆会将源年份的所有类别及限额复制到目标年份。
+          </p>
         </Form>
       </Modal>
 
@@ -323,10 +383,16 @@ const CategoryMoneyConfigPage: React.FC = () => {
         <Alert
           type="info"
           showIcon={false}
-          style={{ backgroundColor: '#e6f7ff', border: '1px solid #91d5ff', marginBottom: 20 }}
+          style={{
+            backgroundColor: '#e6f7ff',
+            border: '1px solid #91d5ff',
+            marginBottom: 20,
+          }}
           description={
             <div style={{ padding: '8px 4px' }}>
-              <Typography.Title level={5} style={{ marginTop: 0 }}>导入说明</Typography.Title>
+              <Typography.Title level={5} style={{ marginTop: 0 }}>
+                导入说明
+              </Typography.Title>
               <ol style={{ paddingLeft: 20, marginBottom: 16 }}>
                 <li>请先下载模板文件，按照模板格式填写数据</li>
                 <li>仅支持 .csv 格式，文件大小不超过 128MB</li>
@@ -353,15 +419,28 @@ const CategoryMoneyConfigPage: React.FC = () => {
               value={selectedYear}
               onChange={setSelectedYear}
             >
-              {[...new Set([...years, new Date().getFullYear(), new Date().getFullYear() + 1])].sort((a, b) => b - a).map(y => (
-                <Option key={y} value={y}>{y}年</Option>
-              ))}
+              {[
+                ...new Set([
+                  ...years,
+                  new Date().getFullYear(),
+                  new Date().getFullYear() + 1,
+                ]),
+              ]
+                .sort((a, b) => b - a)
+                .map((y) => (
+                  <Option key={y} value={y}>
+                    {y}年
+                  </Option>
+                ))}
             </Select>
           </Space>
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <Radio.Group value={importMode} onChange={e => setImportMode(e.target.value)}>
+          <Radio.Group
+            value={importMode}
+            onChange={(e) => setImportMode(e.target.value)}
+          >
             <Radio value="overwrite">全量覆盖</Radio>
             <Radio value="append">增量添加</Radio>
           </Radio.Group>
@@ -369,7 +448,10 @@ const CategoryMoneyConfigPage: React.FC = () => {
 
         {importMode === 'overwrite' && (
           <div style={{ marginBottom: 20 }}>
-            <Typography.Text type="warning" style={{ color: '#faad14', fontWeight: 'bold' }}>
+            <Typography.Text
+              type="warning"
+              style={{ color: '#faad14', fontWeight: 'bold' }}
+            >
               ⚠️ 导入将删除 {selectedYear} 年的所有现有配置，并导入新配置
             </Typography.Text>
           </div>
@@ -378,7 +460,7 @@ const CategoryMoneyConfigPage: React.FC = () => {
         <Upload.Dragger
           accept=".csv"
           fileList={fileList}
-          beforeUpload={file => {
+          beforeUpload={(file) => {
             setFileList([file]);
             return false;
           }}
@@ -390,7 +472,9 @@ const CategoryMoneyConfigPage: React.FC = () => {
             <CloudUploadOutlined style={{ fontSize: 48, color: '#1890ff' }} />
           </p>
           <p className="ant-upload-text">点击或拖拽CSV文件到此区域上传</p>
-          <p className="ant-upload-hint">仅支持 .csv 格式，文件大小不超过 128MB</p>
+          <p className="ant-upload-hint">
+            仅支持 .csv 格式，文件大小不超过 128MB
+          </p>
         </Upload.Dragger>
       </Modal>
     </PageContainer>

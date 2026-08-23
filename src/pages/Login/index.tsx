@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { history, useModel } from '@umijs/max';
+import { useModel } from '@umijs/max';
 import { getConfig } from '../../config';
+import TwoFactorLoginModal from '@/components/TwoFactorLoginModal';
 import styles from './index.less';
 
 interface LoginForm {
@@ -12,6 +13,11 @@ interface LoginForm {
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const [twoFactor, setTwoFactor] = useState<{
+    open: boolean;
+    action: 'bind' | 'verify';
+    challengeToken: string;
+  }>({ open: false, action: 'verify', challengeToken: '' });
   const { initialState } = useModel('@@initialState');
   const config = getConfig();
 
@@ -19,6 +25,14 @@ const Login: React.FC = () => {
     const appName = initialState?.initData?.app || '共享救助信息服务平台5';
     document.title = `${appName} - 登录`;
   }, [initialState]);
+
+  const finishLogin = (token: string) => {
+    localStorage.setItem('token', token);
+    message.success('登录成功');
+    localStorage.removeItem('umi_initial_state');
+    sessionStorage.clear();
+    window.location.href = '/dashboard';
+  };
 
   const onFinish = async (values: LoginForm) => {
     setLoading(true);
@@ -34,13 +48,13 @@ const Login: React.FC = () => {
       const data = await response.json();
 
       if (data.code === 0) {
-        // 保存 token
-        localStorage.setItem('token', data.data.token);
-        message.success('登录成功');
-        // 清除可能的缓存并强制刷新页面以获取最新菜单
-        localStorage.removeItem('umi_initial_state');
-        sessionStorage.clear();
-        window.location.href = '/dashboard';
+        finishLogin(data.data.token);
+      } else if (data.code === 1001 || data.code === 1002) {
+        setTwoFactor({
+          open: true,
+          action: data.code === 1001 ? 'bind' : 'verify',
+          challengeToken: data.data?.challenge_token || '',
+        });
       } else {
         message.error(data.msg || '登录失败');
       }
@@ -90,8 +104,15 @@ const Login: React.FC = () => {
           </Form.Item>
         </Form>
       </Card>
+      <TwoFactorLoginModal
+        open={twoFactor.open}
+        action={twoFactor.action}
+        challengeToken={twoFactor.challengeToken}
+        onCancel={() => setTwoFactor(current => ({ ...current, open: false }))}
+        onSuccess={finishLogin}
+      />
     </div>
   );
 };
 
-export default Login; 
+export default Login;

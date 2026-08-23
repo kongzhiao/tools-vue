@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Table,
   Button,
@@ -10,6 +10,7 @@ import {
   Popconfirm,
   Space,
   Select,
+  Switch,
   Tag,
 } from 'antd';
 import {
@@ -21,8 +22,6 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import { request, useAccess, useLocation } from '@umijs/max';
-
-const { Option } = Select;
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 6,
@@ -46,6 +45,11 @@ interface User {
   created_at: string;
   updated_at: string;
   roles: Array<{ id: number; name: string; description: string; }>;
+  totp_required?: boolean;
+  totp_effective_required?: boolean;
+  totp_bound?: boolean;
+  login_locked?: boolean;
+  login_lock_remaining_seconds?: number;
 }
 
 interface Role {
@@ -73,8 +77,13 @@ const User: React.FC = () => {
     role_id: undefined,
     town_id: undefined,
   });
+  const handledLocationSearchRef = useRef<string | null>(null);
   const [form] = Form.useForm();
   const [roleForm] = Form.useForm();
+  const editingAdministrator = Boolean(
+    editingUser
+    && (editingUser.id === 1 || editingUser.roles?.some(role => role.name === '管理员')),
+  );
 
   // 获取用户列表
   const fetchUsers = async (page = current, limit = pageSize, customFilters = filters) => {
@@ -143,22 +152,33 @@ const User: React.FC = () => {
   // 处理用户提交
   const handleSubmit = async (values: any) => {
     try {
+      if (!access.canManageUserSecurity) {
+        delete values.totp_required;
+      }
       // 如果是编辑用户且密码为空，则移除密码字段
       if (editingUser && (!values.password || values.password.trim() === '')) {
         delete values.password;
       }
 
       if (editingUser) {
-        await request(`/api/users/${editingUser.id}`, {
+        const response = await request(`/api/users/${editingUser.id}`, {
           method: 'PUT',
           data: values,
         });
+        if (response.code !== 0) {
+          message.error(response.msg || '更新失败');
+          return;
+        }
         message.success('更新成功');
       } else {
-        await request('/api/users', {
+        const response = await request('/api/users', {
           method: 'POST',
           data: values,
         });
+        if (response.code !== 0) {
+          message.error(response.msg || '创建失败');
+          return;
+        }
         message.success('创建成功');
       }
       setModalVisible(false);
@@ -173,9 +193,13 @@ const User: React.FC = () => {
   // 处理删除
   const handleDelete = async (id: number) => {
     try {
-      await request(`/api/users/${id}`, {
+      const response = await request(`/api/users/${id}`, {
         method: 'DELETE',
       });
+      if (response.code !== 0) {
+        message.error(response.msg || '删除失败');
+        return;
+      }
       message.success('删除成功');
       fetchUsers();
     } catch (error) {
@@ -188,10 +212,14 @@ const User: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      await request(`/api/users/${selectedUser.id}/roles`, {
+      const response = await request(`/api/users/${selectedUser.id}/roles`, {
         method: 'POST',
         data: values,
       });
+      if (response.code !== 0) {
+        message.error(response.msg || '角色分配失败');
+        return;
+      }
       message.success('角色分配成功');
       setRoleModalVisible(false);
       setSelectedUser(null);
@@ -202,12 +230,62 @@ const User: React.FC = () => {
     }
   };
 
+  const handleResetTotp = (record: User) => {
+    let totpCode = '';
+    Modal.confirm({
+      title: `重置 ${record.username} 的2FA`,
+      content: (
+        <div>
+          <p>重置后该用户的全部会话会立即失效，下次登录必须重新绑定。</p>
+          <Input
+            placeholder="输入你自己的6位动态验证码"
+            maxLength={6}
+            inputMode="numeric"
+            onChange={event => { totpCode = event.target.value; }}
+          />
+        </div>
+      ),
+      okText: '确认重置',
+      cancelText: '取消',
+      async onOk() {
+        const response = await request(`/api/users/${record.id}/totp/reset`, {
+          method: 'POST',
+          data: { totp_code: totpCode },
+        });
+        if (response.code !== 0) {
+          message.error(response.msg || '重置失败');
+          return Promise.reject(new Error(response.msg || '重置失败'));
+        }
+        message.success('2FA已重置');
+        fetchUsers();
+      },
+    });
+  };
+
+  const handleClearLoginLock = async (record: User) => {
+    try {
+      const response = await request(`/api/users/${record.id}/login-lock`, { method: 'DELETE' });
+      if (response.code === 0) {
+        message.success('登录锁定已解除');
+        fetchUsers();
+      } else {
+        message.error(response.msg || '解除锁定失败');
+      }
+    } catch {
+      message.error('解除锁定失败');
+    }
+  };
+
   useEffect(() => {
     fetchRoles();
     fetchTowns();
   }, []);
 
   useEffect(() => {
+    if (location.pathname !== '/user-management/accounts') return;
+    if (handledLocationSearchRef.current === location.search) return;
+    handledLocationSearchRef.current = location.search;
+
     const params = new URLSearchParams(window.location.search);
     const townId = params.get('town_id');
     const nextFilters = {
@@ -220,7 +298,7 @@ const User: React.FC = () => {
     }
     setFilters(nextFilters);
     fetchUsers(1, pageSize, nextFilters);
-  }, [location.search]);
+  }, [location.pathname, location.search]);
 
   const columns = [
     {
@@ -263,6 +341,29 @@ const User: React.FC = () => {
       render: (_: any, record: User) => record.town?.name || '全局',
     },
     {
+      title: '双重验证',
+      key: 'totp',
+      width: 150,
+      render: (_: any, record: User) => (
+        <Space size={4} wrap>
+          <Tag color={record.totp_effective_required ? 'blue' : 'default'}>
+            {record.totp_effective_required ? '强制' : '可选'}
+          </Tag>
+          <Tag color={record.totp_bound ? 'success' : 'warning'}>
+            {record.totp_bound ? '已绑定' : '未绑定'}
+          </Tag>
+        </Space>
+      ),
+    },
+    {
+      title: '登录状态',
+      key: 'login_status',
+      width: 110,
+      render: (_: any, record: User) => record.login_locked
+        ? <Tag color="error">已锁定</Tag>
+        : <Tag color="success">正常</Tag>,
+    },
+    {
       title: '创建时间',
       dataIndex: 'created_at',
       key: 'created_at',
@@ -271,7 +372,7 @@ const User: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 360,
       render: (_: any, record: User) => (
         <Space size="middle">
           {access.canUpdateUser && (
@@ -282,7 +383,14 @@ const User: React.FC = () => {
                 setEditingUser(record);
                 // 编辑时不设置密码字段，保持为空
                 const { password, ...userData } = record as any;
-                form.setFieldsValue(userData);
+                const administrator = record.id === 1
+                  || record.roles?.some(role => role.name === '管理员');
+                form.setFieldsValue({
+                  ...userData,
+                  totp_required: administrator
+                    ? true
+                    : (record.totp_effective_required ?? record.totp_required ?? false),
+                });
                 setModalVisible(true);
               }}
             >
@@ -304,6 +412,21 @@ const User: React.FC = () => {
             >
               分配角色
             </Button>
+          )}
+          {access.canManageUserSecurity && record.totp_bound && (
+            <Button type="link" onClick={() => handleResetTotp(record)}>
+              重置2FA
+            </Button>
+          )}
+          {access.canManageUserSecurity && record.login_locked && (
+            <Popconfirm
+              title="确定立即解除该账号的登录锁定吗？"
+              onConfirm={() => handleClearLoginLock(record)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link">解除锁定</Button>
+            </Popconfirm>
           )}
           {access.canDeleteUser && (
             <Popconfirm
@@ -365,6 +488,7 @@ const User: React.FC = () => {
               onClick={() => {
                 setEditingUser(null);
                 form.resetFields();
+                form.setFieldsValue({ totp_required: true });
                 setModalVisible(true);
               }}
             >
@@ -430,12 +554,35 @@ const User: React.FC = () => {
             name="password"
             label="密码"
             rules={[
-              ...(editingUser ? [] : [{ required: true, message: '请输入密码' }])
+              ...(editingUser ? [] : [{ required: true, message: '请输入密码' }]),
+              {
+                validator: async (_, value) => {
+                  if (!value && editingUser) return;
+                  if (typeof value !== 'string' || value.length < 8) throw new Error('密码至少8位');
+                  if (!/[A-Za-z]/.test(value)) throw new Error('密码必须包含字母');
+                  if (!/[^A-Za-z0-9\s]/.test(value)) throw new Error('密码必须包含特殊符号');
+                },
+              },
             ]}
             extra={editingUser ? "不设置密码则保持不变" : undefined}
           >
             <Input.Password
               placeholder={editingUser ? "不设置密码则保持不变" : "请输入密码"}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="totp_required"
+            label="强制开启双重验证"
+            valuePropName="checked"
+            extra={editingAdministrator
+              ? '管理员角色必须开启双重验证，不能关闭。'
+              : '开启后，用户登录时必须先绑定身份验证器，以后每次登录均需验证动态验证码。'}
+          >
+            <Switch
+              checkedChildren="是"
+              unCheckedChildren="否"
+              disabled={!access.canManageUserSecurity || editingAdministrator}
             />
           </Form.Item>
 
@@ -489,7 +636,8 @@ const User: React.FC = () => {
               options={roles.map(role => ({
                 label: role.name,
                 value: role.id,
-                description: role.description
+                description: role.description,
+                disabled: role.name === '管理员' && !access.canManageUserSecurity,
               }))}
               optionLabelProp="label"
             />
@@ -516,4 +664,4 @@ const User: React.FC = () => {
   );
 };
 
-export default User; 
+export default User;

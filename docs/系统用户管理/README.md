@@ -2,66 +2,59 @@
 
 ## 功能目标
 
-管理共享救助信息服务平台的后台登录账号，包括账号创建、资料编辑、密码设置、镇街绑定、角色分配和删除。这里的“用户”是系统操作人员，不是参保人、救助对象或患者。
+管理后台登录账号、角色、镇街范围、密码安全、登录锁和 TOTP 双重验证。这里的用户是系统操作人员，不是参保人、救助对象或患者。
 
 ## 页面入口
 
 - 登录：`/login`
 - 账户管理：`/user-management/accounts`
+- 本人安全设置：点击页面左下角用户名，选择“安全设置”
 - 关联页面：角色管理、权限管理、镇街管理、操作记录
-
-## 使用角色
-
-- 超级管理员或具有账户管理权限的后台账号。
-- 镇街账号可以登录业务系统，但是否能管理其他账号由角色权限决定。
 
 ## 已实现能力
 
-- 按用户名/昵称、角色、所属镇街筛选账号并分页。
-- 创建账号：用户名、昵称、密码、可选镇街。
-- 编辑账号：用户名、昵称、镇街；填写新密码时同时更新密码，留空保持原密码。
-- 分配一个或多个角色。
-- 删除账号。
-- 登录用户修改本人密码并重新登录。
-- 显示全局账号与镇街账号；镇街绑定同时影响台账数据范围。
+- 账号密码登录后，根据后端状态进入 TOTP 首次绑定或动态码验证。
+- 支持苹果“密码”、Microsoft Authenticator、2FAS 和 Google Authenticator 等 RFC 6238 兼容应用。
+- 新密码至少 8 位，并同时包含字母和特殊符号。
+- 创建用户时“强制开启双重验证”默认选中。
+- 账户列表展示 TOTP 要求、绑定状态和登录锁状态。
+- 超级管理员和精确名称为“管理员”的角色可设置普通用户的 TOTP 要求、重置他人 TOTP 和清除登录锁。
+- 修改本人密码后清除本地登录状态并返回登录页。
+- 会话过期时，已绑定 TOTP 的用户可以在当前页面验证动态码恢复会话；无需重新加载并丢失当前页面状态。
 
-## 业务边界与限制
+## 业务保护
 
-- 当前 `users` 表没有启停状态，页面也没有启用/禁用操作。
-- 超级管理员记录 `id = 1` 不出现在账户列表，角色选择也排除 `id = 1` 的角色。
-- 当前没有独立“重置密码”接口；管理员通过编辑账号填写新密码实现更新。
-- 删除为数据库直接删除，用户模型没有软删除；删除前必须确认。
-- 页面提交创建/编辑后没有再次检查返回 `code` 再显示成功，这是存量行为，不能据此改变后端事实。
+- 超级管理员 `id=1` 不出现在普通账户列表。
+- “管理员”角色不能改名、删除或重复创建，页面同步隐藏或禁用相应操作。
+- 只有超级管理员或现有“管理员”角色能授予或移除“管理员”角色。
+- 普通用户不能关闭或重新绑定 TOTP；需要更换设备时由另一名具备安全管理能力的账号重置。
+- 非 `prod` 环境后端不校验 TOTP 动态码，页面会显示开发环境提示。
+- 用户没有启停状态和软删除，删除前必须确认。
 
 ## 前端代码位置
 
-- 路由：`.umirc.ts`
-- 页面：`src/pages/User/index.tsx`
-- 登录与初始化：`src/pages/Login/index.tsx`、`src/app.ts`
-- 修改密码：`src/components/ChangePasswordModal/index.tsx`、`src/services/auth.ts`
-- 权限：`src/access.ts`
+- 登录：`src/pages/Login/index.tsx`、`src/pages/mobile/Login/index.tsx`
+- TOTP 登录：`src/components/TwoFactorLoginModal/index.tsx`
+- 本人安全设置：`src/components/SecuritySettingsDrawer/index.tsx`
+- 会话恢复：`src/app.ts`
+- 账户管理：`src/pages/User/index.tsx`
+- 角色保护：`src/pages/Role/index.tsx`
+- 权限能力：`src/access.ts`
+- 接口：`src/services/auth.ts`
 
 ## 主要接口
 
 | 方法 | 路径 | 用途 |
 |---|---|---|
-| POST | `/api/login` | 登录 |
-| GET | `/api/user/info` | 当前用户、权限和菜单 |
+| POST | `/api/login` | 账号密码登录或取得 TOTP 挑战 |
+| POST | `/api/auth/totp/login-setup` | 首次登录取得绑定信息 |
+| POST | `/api/auth/totp/login-bind` | 首次绑定并登录 |
+| POST | `/api/auth/totp/login-verify` | 已绑定用户验证并登录 |
+| POST | `/api/auth/session/reauth` | 会话过期后通过 TOTP 恢复 |
+| POST | `/api/logout` | 注销服务端会话 |
+| GET | `/api/user/security` | 本人安全状态 |
+| POST | `/api/user/totp/setup` | 本人首次绑定准备 |
+| POST | `/api/user/totp/bind` | 本人完成首次绑定 |
 | POST | `/api/user/change-password` | 修改本人密码 |
-| GET | `/api/users` | 账号列表 |
-| POST | `/api/users` | 创建账号 |
-| PUT | `/api/users/{id}` | 编辑账号或更新密码 |
-| DELETE | `/api/users/{id}` | 删除账号 |
-| GET | `/api/users/roles` | 可分配角色 |
-| POST | `/api/users/{id}/roles` | 同步角色 |
-| GET | `/api/towns/options` | 镇街选项 |
-
-## 权限
-
-- `账户管理:查看`
-- `账户管理:创建`
-- `账户管理:编辑`
-- `账户管理:删除`
-
-分配角色当前复用“账户管理:编辑”的前端可见性。
-
+| POST | `/api/users/{id}/totp/reset` | 重置他人 TOTP |
+| DELETE | `/api/users/{id}/login-lock` | 清除账号锁定 |

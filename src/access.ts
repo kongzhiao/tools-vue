@@ -4,27 +4,40 @@ export default (initialState: {
     id: number;
     username: string;
     nickname: string;
+    admin_capability?: boolean;
     permissions: string[];
   };
 }) => {
   const { currentUser } = initialState || {};
   // 确保 permissions 是数组
-  const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const permissions = Array.isArray(currentUser?.permissions)
+    ? currentUser.permissions
+    : [];
 
-  const isAdmin = currentUser?.username === 'admin' || currentUser?.nickname === '超级管理员';
+  const isAdmin =
+    Boolean(currentUser?.admin_capability) ||
+    currentUser?.username === 'admin' ||
+    currentUser?.nickname === '超级管理员';
 
   const hasPermission = (permission: string) => {
     if (!Array.isArray(permissions)) return false;
-    return isAdmin || permissions.includes(permission) || permissions.includes('*');
+    return (
+      isAdmin || permissions.includes(permission) || permissions.includes('*')
+    );
   };
 
   const hasModulePermission = (module: string) => {
     if (!Array.isArray(permissions)) return false;
     try {
-      return isAdmin ||
+      return (
+        isAdmin ||
         permissions.includes('*') ||
         permissions.includes(module) ||
-        permissions.some((p: string) => p && typeof p === 'string' && p.startsWith(`${module}:`));
+        permissions.some(
+          (p: string) =>
+            p && typeof p === 'string' && p.startsWith(`${module}:`),
+        )
+      );
     } catch (error) {
       console.error('权限检查错误:', error);
       return false;
@@ -40,6 +53,7 @@ export default (initialState: {
     canUpdateUser: hasPermission('账户管理:编辑'),
     canDeleteUser: hasPermission('账户管理:删除'),
     canAccessUser: hasModulePermission('账户管理'),
+    canManageUserSecurity: isAdmin,
 
     // 角色管理权限
     canReadRole: hasPermission('角色管理:查看'),
@@ -77,9 +91,6 @@ export default (initialState: {
 
     // 仪表板权限 - 所有已登录用户都可以访问
     canAccessDashboard: !!currentUser,
-
-    // 业务配置权限
-    canAccessBusinessConfig: hasModulePermission('业务配置'),
 
     // 类别转换权限
     canReadCategoryConversion: hasPermission('类别转换配置:查看'),
@@ -167,7 +178,6 @@ export default (initialState: {
     canExportReimbursementManagement: hasPermission('受理记录:导出'),
     canAccessReimbursementManagement: hasModulePermission('受理记录'),
 
-
     /** 优抚救助 2025-12-20 */
     // 类别额度配置
     canReadCategoryMoneyConfig: hasPermission('类别额度配置:查看'),
@@ -236,9 +246,6 @@ export default (initialState: {
     canDeleteEnrollConfigs: hasPermission('参保配置:删除'),
     canAccessEnrollImportBatches: hasModulePermission('参保导入记录'),
     canReadEnrollImportBatches: hasPermission('参保导入记录:查看'),
-
-
-
 
     // 通用权限检查函数
     hasPermission,

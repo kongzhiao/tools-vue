@@ -1,9 +1,10 @@
 import type { MenuProps } from 'antd';
 import { Dropdown, Empty, List, Modal, Popover, Spin, Tooltip } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
-import { DownOutlined, FileTextOutlined, LockOutlined, LogoutOutlined, QuestionCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { AuditOutlined, BarChartOutlined, DownOutlined, FileSearchOutlined, FileTextOutlined, GlobalOutlined, LockOutlined, LogoutOutlined, MedicineBoxOutlined, QuestionCircleOutlined, SolutionOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons';
 import { getConfig } from '@/config';
-import ChangePasswordModal from '../ChangePasswordModal';
+import SecuritySettingsDrawer from '../SecuritySettingsDrawer';
+import { logout as logoutRequest } from '@/services/auth';
 import './index.less';
 
 interface RightContentProps {
@@ -21,8 +22,20 @@ interface HelpDocument {
     updated_at?: string;
 }
 
+const getHelpDocumentDisplayTitle = (title: string) => title.replace(/用户操作与核对参考文档$/, '');
+
+const helpDocumentIcons: Record<string, typeof FileTextOutlined> = {
+    参保台账: SolutionOutlined,
+    救助报销: MedicineBoxOutlined,
+    数据核实: AuditOutlined,
+    未救助台账: FileSearchOutlined,
+    用户管理: TeamOutlined,
+    统计汇总: BarChartOutlined,
+    联网结算: GlobalOutlined,
+};
+
 const RightContent: React.FC<RightContentProps> = ({ currentUser, compact: compactProp = false }) => {
-    const [visible, setVisible] = useState(false);
+    const [securityOpen, setSecurityOpen] = useState(false);
     const [helpOpen, setHelpOpen] = useState(false);
     const [helpLoading, setHelpLoading] = useState(false);
     const [helpDocuments, setHelpDocuments] = useState<HelpDocument[]>([]);
@@ -73,9 +86,15 @@ const RightContent: React.FC<RightContentProps> = ({ currentUser, compact: compa
             content: '退出后需要重新登录才能访问系统',
             okText: '确定',
             cancelText: '取消',
-            onOk() {
-                localStorage.removeItem('token');
-                window.location.href = '/login';
+            async onOk() {
+                try {
+                    await logoutRequest();
+                } finally {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('umi_initial_state');
+                    sessionStorage.clear();
+                    window.location.href = '/login';
+                }
             },
         });
     };
@@ -84,10 +103,10 @@ const RightContent: React.FC<RightContentProps> = ({ currentUser, compact: compa
 
     const items: MenuProps['items'] = [
         {
-            key: 'password',
+            key: 'security',
             icon: <LockOutlined />,
-            label: '修改密码',
-            onClick: () => setVisible(true),
+            label: '安全设置',
+            onClick: () => setSecurityOpen(true),
         },
         {
             type: 'divider',
@@ -107,19 +126,24 @@ const RightContent: React.FC<RightContentProps> = ({ currentUser, compact: compa
                     <List
                         size="small"
                         dataSource={helpDocuments}
-                        renderItem={item => (
-                            <List.Item className="help-doc-item">
-                                <a
-                                    href={getHelpUrl(item.url)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="help-doc-link"
-                                >
-                                    <FileTextOutlined className="help-doc-icon" />
-                                    <span className="help-doc-title">{item.title}</span>
-                                </a>
-                            </List.Item>
-                        )}
+                        renderItem={item => {
+                            const displayTitle = getHelpDocumentDisplayTitle(item.title);
+                            const HelpDocumentIcon = helpDocumentIcons[displayTitle] || FileTextOutlined;
+
+                            return (
+                                <List.Item className="help-doc-item">
+                                    <a
+                                        href={getHelpUrl(item.url)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="help-doc-link"
+                                    >
+                                        <HelpDocumentIcon className="help-doc-icon" />
+                                        <span className="help-doc-title">{displayTitle}</span>
+                                    </a>
+                                </List.Item>
+                            );
+                        }}
                     />
                 ) : (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无帮助文档" />
@@ -166,9 +190,9 @@ const RightContent: React.FC<RightContentProps> = ({ currentUser, compact: compa
                 </div>
             </Dropdown>
             
-            <ChangePasswordModal 
-                visible={visible} 
-                onCancel={() => setVisible(false)} 
+            <SecuritySettingsDrawer
+                open={securityOpen}
+                onClose={() => setSecurityOpen(false)}
             />
         </div>
     );
