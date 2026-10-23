@@ -3,6 +3,7 @@ import { Alert, Button, Card, Checkbox, Form, Input, InputNumber, message, Modal
 import { CloudUploadOutlined, CopyOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, InboxOutlined, PlusOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAccess } from '@umijs/max';
+import { getEnrollYearOptions } from '@/utils/enroll';
 import {
   createEnrollConfig,
   deleteEnrollConfig,
@@ -61,10 +62,7 @@ const downloadCsvTemplate = (filename: string, headers: string[]) => {
 const resolveUploadFile = (file?: any) => file?.originFileObj || file;
 
 const currentYearValue = dayjs().year();
-const yearOptions = Array.from({ length: 3 }, (_, index) => {
-  const year = currentYearValue - index;
-  return { label: `${year}`, value: year };
-});
+const yearOptions = getEnrollYearOptions();
 
 const tableScrollXMap: Record<string, number> = {
   subsidy: 1920,
@@ -208,7 +206,7 @@ const EnrollConfigsPage: React.FC = () => {
   const openClone = () => {
     const targetYear = currentConfigYear || filterForm.getFieldValue('year') || currentYearValue;
     cloneForm.setFieldsValue({
-      from_year: targetYear - 1,
+      from_year: yearOptions.some(option => option.value === targetYear - 1) ? targetYear - 1 : undefined,
       to_year: targetYear,
       types: [activeType],
       overwrite: false,

@@ -40,6 +40,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAccess, useModel } from '@umijs/max';
+import { getEnrollYearOptions } from '@/utils/enroll';
 import {
   exportEnrollLedgers,
   dispatchEnrollLedgers,
@@ -103,7 +104,7 @@ const moreFilterRowStyle: React.CSSProperties = {
   marginTop: 8,
 };
 
-const yearOptions = [0, 1, 2].map(i => ({ label: `${dayjs().year() - i}`, value: dayjs().year() - i }));
+const yearOptions = getEnrollYearOptions();
 const monthOptions = Array.from({ length: 12 }, (_, index) => {
   const value = index + 1;
   return { label: `${String(value).padStart(2, '0')}月`, value };
@@ -294,6 +295,7 @@ const EnrollLedgersPage: React.FC = () => {
   const [fileList, setFileList] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>([]);
+  const [importYear, setImportYear] = useState(dayjs().year());
   const [importMonth, setImportMonth] = useState(dayjs().month() + 1);
   const [importType, setImportType] = useState('attachment3');
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -324,6 +326,7 @@ const EnrollLedgersPage: React.FC = () => {
 
   const openImportModal = (type: string) => {
     setImportType(type);
+    setImportYear(form.getFieldValue('year') || dayjs().year());
     setFileList([]);
     setImportVisible(true);
   };
@@ -387,33 +390,66 @@ const EnrollLedgersPage: React.FC = () => {
   }, []);
 
   const submitImport = async () => {
+    if (submitting) return;
     const uploadFile = resolveUploadFile(fileList[0]);
     if (!uploadFile) {
       message.warning('请选择导入文件');
       return;
     }
-    if (!selectedYear || !importMonth) {
+    if (!importYear || !importMonth) {
       message.warning('请先选择年份和导入月份');
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', uploadFile as File);
-      formData.append('year', String(selectedYear));
-      formData.append('period', buildPeriod(selectedYear, importMonth) || '');
-      const res = await currentImportMeta.endpoint(formData);
-      if (res.code !== 0) throw new Error(res.message || '导入失败');
-      message.success('导入任务已提交，请在任务中心查看进度');
-      window.dispatchEvent(new CustomEvent('openTaskCenter'));
-      setImportVisible(false);
-      setFileList([]);
-    } catch (error: any) {
-      message.error(error.message || '导入失败');
-    } finally {
-      setSubmitting(false);
+    const targetYear = importYear;
+    const targetPeriod = buildPeriod(targetYear, importMonth) || '';
+    const runImport = async () => {
+      setSubmitting(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', uploadFile as File);
+        formData.append('year', String(targetYear));
+        formData.append('period', targetPeriod);
+        const res = await currentImportMeta.endpoint(formData);
+        if (res.code !== 0) throw new Error(res.msg || res.message || '导入失败');
+        message.success(`${targetPeriod} 导入任务已提交，请在任务中心查看进度`);
+        window.dispatchEvent(new CustomEvent('openTaskCenter'));
+        setImportVisible(false);
+        setFileList([]);
+      } catch (error: any) {
+        message.error(error.message || '导入失败');
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    const currentYear = dayjs().year();
+    if (targetYear !== currentYear) {
+      Modal.confirm({
+        title: `确认导入 ${targetYear} 年的数据？`,
+        width: 500,
+        content: (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Alert type="warning" showIcon message={`当前是 ${currentYear} 年，您选择了 ${targetYear} 年度`} />
+            <div style={{ width: '100%', padding: 16, textAlign: 'center', background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 6 }}>
+              <Typography.Text>本次数据将导入至</Typography.Text>
+              <Typography.Title level={3} style={{ margin: '8px 0', fontSize: 28, color: '#ad4e00' }}>
+                {targetYear} 年 {String(importMonth).padStart(2, '0')} 月
+              </Typography.Title>
+              <Typography.Text strong>{currentImportMeta.title}</Typography.Text>
+            </div>
+            <Typography.Text>请核对目标年度和月份，确认无误后再提交导入。</Typography.Text>
+          </Space>
+        ),
+        okText: `确认导入 ${targetYear} 年 ${String(importMonth).padStart(2, '0')} 月`,
+        cancelText: '返回核对',
+        autoFocusButton: 'cancel',
+        onOk: runImport,
+      });
+      return;
     }
+
+    await runImport();
   };
 
   const submitExport = async (type: string) => {
@@ -774,7 +810,7 @@ const EnrollLedgersPage: React.FC = () => {
   }, [columns]);
 
   const visibleColumns = columns.filter(item => visibleColumnKeys.includes(String(item.key)));
-  const currentPeriod = buildPeriod(selectedYear, importMonth) || '-';
+  const currentPeriod = buildPeriod(importYear, importMonth) || '-';
   const columnSettingContent = (
     <div style={{ width: 260, maxHeight: 360, overflowY: 'auto' }}>
       <Space direction="vertical" style={{ width: '100%' }}>
@@ -1208,12 +1244,13 @@ const EnrollLedgersPage: React.FC = () => {
         title={currentImportMeta.title}
         open={importVisible}
         onCancel={() => {
+          if (submitting) return;
           setImportVisible(false);
           setFileList([]);
         }}
         width={640}
         footer={[
-          <Button key="cancel" onClick={() => {
+          <Button key="cancel" disabled={submitting} onClick={() => {
             setImportVisible(false);
             setFileList([]);
           }}>关闭</Button>,
@@ -1221,10 +1258,10 @@ const EnrollLedgersPage: React.FC = () => {
         ]}
       >
         <Alert
-          message="导入说明"
+          message={<Typography.Text strong style={{ fontSize: 18 }}>导入至 {importYear} 年 {String(importMonth).padStart(2, '0')} 月</Typography.Text>}
           description={
             <Space direction="vertical" size={8}>
-              <span>1. 当前导入月份：{currentPeriod}</span>
+              <span>1. 数据将归入 {importYear} 年度台账，所属月份：{currentPeriod}</span>
               <span>2. 仅支持 .csv 格式，编码自动识别 UTF-8/GBK</span>
               <span>3. {currentImportMeta.rule}</span>
               <Button
@@ -1237,22 +1274,20 @@ const EnrollLedgersPage: React.FC = () => {
               </Button>
             </Space>
           }
-          type="info"
+          type={importYear === dayjs().year() ? 'info' : 'warning'}
           showIcon
           style={{ marginBottom: 16 }}
         />
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ marginRight: 8 }}>导入月份</span>
-          <Select
-            value={importMonth}
-            style={{ width: 120 }}
-            options={monthOptions}
-            onChange={setImportMonth}
-          />
-        </div>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <span>所属年度</span>
+          <Select value={importYear} style={{ width: 120 }} options={yearOptions} onChange={setImportYear} disabled={submitting} />
+          <span>导入月份</span>
+          <Select value={importMonth} style={{ width: 120 }} options={monthOptions} onChange={setImportMonth} disabled={submitting} />
+        </Space>
         <Upload.Dragger
           accept=".csv"
           maxCount={1}
+          disabled={submitting}
           fileList={fileList}
           beforeUpload={file => {
             setFileList([file]);

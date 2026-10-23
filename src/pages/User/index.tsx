@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  Alert,
   Table,
   Button,
   Card,
@@ -66,6 +67,10 @@ const User: React.FC = () => {
   const [towns, setTowns] = useState<Array<{ id: number; name: string }>>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [roleModalVisible, setRoleModalVisible] = useState(false);
+  const [resetTotpUser, setResetTotpUser] = useState<User | null>(null);
+  const [resetTotpCode, setResetTotpCode] = useState('');
+  const [resetTotpError, setResetTotpError] = useState('');
+  const [resetTotpLoading, setResetTotpLoading] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
@@ -231,35 +236,38 @@ const User: React.FC = () => {
   };
 
   const handleResetTotp = (record: User) => {
-    let totpCode = '';
-    Modal.confirm({
-      title: `重置 ${record.username} 的2FA`,
-      content: (
-        <div>
-          <p>重置后该用户的全部会话会立即失效，下次登录必须重新绑定。</p>
-          <Input
-            placeholder="输入你自己的6位动态验证码"
-            maxLength={6}
-            inputMode="numeric"
-            onChange={event => { totpCode = event.target.value; }}
-          />
-        </div>
-      ),
-      okText: '确认重置',
-      cancelText: '取消',
-      async onOk() {
-        const response = await request(`/api/users/${record.id}/totp/reset`, {
-          method: 'POST',
-          data: { totp_code: totpCode },
-        });
-        if (response.code !== 0) {
-          message.error(response.msg || '重置失败');
-          return Promise.reject(new Error(response.msg || '重置失败'));
-        }
-        message.success('2FA已重置');
-        fetchUsers();
-      },
-    });
+    setResetTotpUser(record);
+    setResetTotpCode('');
+    setResetTotpError('');
+  };
+
+  const closeResetTotp = () => {
+    setResetTotpUser(null);
+    setResetTotpCode('');
+    setResetTotpError('');
+  };
+
+  const submitResetTotp = async () => {
+    if (!resetTotpUser) return;
+    setResetTotpLoading(true);
+    setResetTotpError('');
+    try {
+      const response = await request(`/api/users/${resetTotpUser.id}/totp/reset`, {
+        method: 'POST',
+        data: { totp_code: resetTotpCode.trim() },
+      });
+      if (response.code !== 0) {
+        setResetTotpError(response.msg || '重置失败');
+        return;
+      }
+      message.success('2FA已重置');
+      closeResetTotp();
+      fetchUsers();
+    } catch {
+      setResetTotpError('重置失败，请稍后重试');
+    } finally {
+      setResetTotpLoading(false);
+    }
   };
 
   const handleClearLoginLock = async (record: User) => {
@@ -614,6 +622,35 @@ const User: React.FC = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={`重置 ${resetTotpUser?.username || ''} 的2FA`}
+        open={!!resetTotpUser}
+        onOk={submitResetTotp}
+        onCancel={() => {
+          if (!resetTotpLoading) closeResetTotp();
+        }}
+        okText="确认重置"
+        cancelText="取消"
+        confirmLoading={resetTotpLoading}
+        okButtonProps={{ disabled: resetTotpLoading }}
+      >
+        <p>重置后该用户的全部会话会立即失效，下次登录必须重新绑定。</p>
+        <p>请输入当前登录账号绑定的动态验证码，不能使用待重置用户的验证码。</p>
+        <Input
+          value={resetTotpCode}
+          placeholder="当前登录账号的6位动态验证码"
+          maxLength={6}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          status={resetTotpError ? 'error' : undefined}
+          onChange={event => {
+            setResetTotpCode(event.target.value);
+            setResetTotpError('');
+          }}
+        />
+        {resetTotpError && <Alert type="error" showIcon message={resetTotpError} style={{ marginTop: 12 }} />}
       </Modal>
 
       {/* 角色分配模态框 */}

@@ -3,6 +3,7 @@ import { Button, Card, Form, Select, Space, Table, Tag } from 'antd';
 import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getEnrollImportBatches } from '@/services/enroll';
+import { getEnrollYearOptions } from '@/utils/enroll';
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 6,
@@ -28,7 +29,7 @@ const statusColor: Record<string, string> = {
   failed: 'red',
 };
 
-const yearOptions = [0, 1, 2].map(i => ({ label: `${dayjs().year() - i}`, value: dayjs().year() - i }));
+const yearOptions = getEnrollYearOptions();
 
 const EnrollImportBatchesPage: React.FC = () => {
   const [form] = Form.useForm();
