@@ -4,16 +4,18 @@ import {
   Table,
   Button,
   Card,
+  Dropdown,
   Modal,
   Form,
   Input,
   message,
-  Popconfirm,
   Space,
   Select,
   Switch,
   Tag,
+  Tooltip,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
@@ -21,6 +23,8 @@ import {
   SettingOutlined,
   SearchOutlined,
   ReloadOutlined,
+  DownOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import { request, useAccess, useLocation } from '@umijs/max';
 
@@ -41,6 +45,9 @@ interface User {
   id: number;
   username: string;
   nickname: string;
+  status: 0 | 1;
+  last_login_ip?: string | null;
+  last_login_at?: string | null;
   town_id?: number;
   town?: { id: number; name: string };
   created_at: string;
@@ -85,6 +92,7 @@ const User: React.FC = () => {
   const handledLocationSearchRef = useRef<string | null>(null);
   const [form] = Form.useForm();
   const [roleForm] = Form.useForm();
+  const [confirmationModal, confirmationContextHolder] = Modal.useModal();
   const editingAdministrator = Boolean(
     editingUser
     && (editingUser.id === 1 || editingUser.roles?.some(role => role.name === '管理员')),
@@ -159,6 +167,9 @@ const User: React.FC = () => {
     try {
       if (!access.canManageUserSecurity) {
         delete values.totp_required;
+      }
+      if (!editingUser || !access.canManageUserSecurity) {
+        delete values.status;
       }
       // 如果是编辑用户且密码为空，则移除密码字段
       if (editingUser && (!values.password || values.password.trim() === '')) {
@@ -349,6 +360,15 @@ const User: React.FC = () => {
       render: (_: any, record: User) => record.town?.name || '全局',
     },
     {
+      title: '账号状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: User['status']) => status === 0
+        ? <Tag color="error">禁用</Tag>
+        : <Tag color="success">正常</Tag>,
+    },
+    {
       title: '双重验证',
       key: 'totp',
       width: 150,
@@ -364,12 +384,31 @@ const User: React.FC = () => {
       ),
     },
     {
-      title: '登录状态',
+      title: (
+        <Tooltip title="同一账号15分钟内密码错误累计5次会临时锁定，锁定时长按10、30、60分钟递增。到期自动解除，管理员也可提前解除。">
+          <span>登录锁定 <InfoCircleOutlined style={{ color: '#8c8c8c' }} /></span>
+        </Tooltip>
+      ),
       key: 'login_status',
       width: 110,
       render: (_: any, record: User) => record.login_locked
         ? <Tag color="error">已锁定</Tag>
-        : <Tag color="success">正常</Tag>,
+        : <Tag>未锁定</Tag>,
+    },
+    {
+      title: '最后登录IP',
+      dataIndex: 'last_login_ip',
+      key: 'last_login_ip',
+      width: 160,
+      ellipsis: true,
+      render: (ip: User['last_login_ip']) => ip || '—',
+    },
+    {
+      title: '最后登录时间',
+      dataIndex: 'last_login_at',
+      key: 'last_login_at',
+      width: 180,
+      render: (time: User['last_login_at']) => time ? new Date(time).toLocaleString() : '—',
     },
     {
       title: '创建时间',
@@ -380,81 +419,109 @@ const User: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 360,
-      render: (_: any, record: User) => (
-        <Space size="middle">
-          {access.canUpdateUser && (
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => {
-                setEditingUser(record);
-                // 编辑时不设置密码字段，保持为空
-                const { password, ...userData } = record as any;
-                const administrator = record.id === 1
-                  || record.roles?.some(role => role.name === '管理员');
-                form.setFieldsValue({
-                  ...userData,
-                  totp_required: administrator
-                    ? true
-                    : (record.totp_effective_required ?? record.totp_required ?? false),
-                });
-                setModalVisible(true);
-              }}
-            >
-              编辑
-            </Button>
-          )}
-          {access.canUpdateUser && (
-            <Button
-              type="link"
-              icon={<SettingOutlined />}
-              onClick={() => {
-                setSelectedUser(record);
-                const roleIds = record.roles && Array.isArray(record.roles)
-                  ? record.roles.map(role => role.id)
-                  : [];
-                roleForm.setFieldsValue({ role_ids: roleIds });
-                setRoleModalVisible(true);
-              }}
-            >
-              分配角色
-            </Button>
-          )}
-          {access.canManageUserSecurity && record.totp_bound && (
-            <Button type="link" onClick={() => handleResetTotp(record)}>
-              重置2FA
-            </Button>
-          )}
-          {access.canManageUserSecurity && record.login_locked && (
-            <Popconfirm
-              title="确定立即解除该账号的登录锁定吗？"
-              onConfirm={() => handleClearLoginLock(record)}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button type="link">解除锁定</Button>
-            </Popconfirm>
-          )}
-          {access.canDeleteUser && (
-            <Popconfirm
-              title="确定要删除这个用户吗？"
-              onConfirm={() => handleDelete(record.id)}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button type="link" danger icon={<DeleteOutlined />}>
-                删除
+      width: 260,
+      render: (_: any, record: User) => {
+        const moreItems: MenuProps['items'] = [];
+        if (access.canManageUserSecurity && record.totp_bound) {
+          moreItems.push({
+            key: 'reset-totp',
+            label: '重置2FA',
+            onClick: () => handleResetTotp(record),
+          });
+        }
+        if (access.canManageUserSecurity && record.login_locked) {
+          moreItems.push({
+            key: 'clear-login-lock',
+            label: '解除锁定',
+            onClick: () => confirmationModal.confirm({
+              title: `确定立即解除 ${record.username} 的登录锁定吗？`,
+              content: '解除后该账号可以立即重新尝试登录，账号禁用状态不受影响。',
+              okText: '解除锁定',
+              cancelText: '取消',
+              onOk: () => handleClearLoginLock(record),
+            }),
+          });
+        }
+        if (access.canDeleteUser) {
+          if (moreItems.length > 0) moreItems.push({ type: 'divider' });
+          moreItems.push({
+            key: 'delete',
+            label: '删除',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: () => confirmationModal.confirm({
+              title: `确定要删除用户 ${record.username} 吗？`,
+              content: '删除后，该账号将无法登录，也无法在账号列表中查询到。',
+              okText: '删除',
+              okType: 'danger',
+              cancelText: '取消',
+              onOk: () => handleDelete(record.id),
+            }),
+          });
+        }
+
+        return (
+          <Space size={4} style={{ whiteSpace: 'nowrap' }}>
+            {access.canUpdateUser && (
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setEditingUser(record);
+                  // 编辑时不设置密码字段，保持为空
+                  const { password, ...userData } = record as any;
+                  const administrator = record.id === 1
+                    || record.roles?.some(role => role.name === '管理员');
+                  form.setFieldsValue({
+                    ...userData,
+                    totp_required: administrator
+                      ? true
+                      : (record.totp_effective_required ?? record.totp_required ?? false),
+                  });
+                  setModalVisible(true);
+                }}
+              >
+                编辑
               </Button>
-            </Popconfirm>
-          )}
-        </Space>
-      ),
+            )}
+            {access.canUpdateUser && (
+              <Button
+                type="link"
+                size="small"
+                icon={<SettingOutlined />}
+                onClick={() => {
+                  setSelectedUser(record);
+                  const roleIds = record.roles && Array.isArray(record.roles)
+                    ? record.roles.map(role => role.id)
+                    : [];
+                  roleForm.setFieldsValue({ role_ids: roleIds });
+                  setRoleModalVisible(true);
+                }}
+              >
+                分配角色
+              </Button>
+            )}
+            {moreItems.length > 0 && (
+              <Dropdown
+                menu={{ items: moreItems }}
+                trigger={['click']}
+                placement="bottomRight"
+              >
+                <Button type="link" size="small">
+                  更多 <DownOutlined />
+                </Button>
+              </Dropdown>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
   return (
     <div>
+      {confirmationContextHolder}
       <Card size="small" style={{ ...cardStyle, marginBottom: 12 }}>
         <div style={filterToolbarStyle}>
           <Input
@@ -512,6 +579,7 @@ const User: React.FC = () => {
           dataSource={users}
           rowKey="id"
           loading={loading}
+          scroll={{ x: 1700 }}
           pagination={{
             current,
             pageSize,
@@ -578,6 +646,20 @@ const User: React.FC = () => {
               placeholder={editingUser ? "不设置密码则保持不变" : "请输入密码"}
             />
           </Form.Item>
+
+          {editingUser && access.canManageUserSecurity && (
+            <Form.Item
+              name="status"
+              label="账号状态"
+              rules={[{ required: true, message: '请选择账号状态' }]}
+              extra="禁用后该用户将无法登录，已有登录会失效。恢复正常后需重新登录。"
+            >
+              <Select options={[
+                { label: '正常', value: 1 },
+                { label: '禁用', value: 0 },
+              ]} />
+            </Form.Item>
+          )}
 
           <Form.Item
             name="totp_required"

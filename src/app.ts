@@ -1,12 +1,13 @@
 // 运行时配置
 import { request as umiRequest, RuntimeConfig } from '@umijs/max';
 import React from 'react';
-import { Input, message, Modal } from 'antd';
+import { Button, Input, message, Modal, notification } from 'antd';
 import VConsole from 'vconsole';
 import { getConfig } from './config';
 import RightContent from '@/components/RightContent';
 import TaskFloat from '@/components/TaskFloat';
 import WorkspaceTabs from '@/components/WorkspaceTabs';
+import { startBuildVersionCheck, syncBuildVersionInUrl, withBuildVersion } from '@/utils/appVersion';
 // VConsole 已关闭
 // if (process.env.NODE_ENV === 'development') {
 //   new VConsole();
@@ -14,6 +15,27 @@ import WorkspaceTabs from '@/components/WorkspaceTabs';
 
 // 获取当前环境配置
 const config = getConfig();
+
+export function render(oldRender: () => void) {
+  syncBuildVersionInUrl();
+  startBuildVersionCheck(version => {
+    notification.info({
+      key: 'app-version-update',
+      message: '系统已更新',
+      description: '请先保存当前内容，再刷新以使用新版本。',
+      duration: 0,
+      btn: React.createElement(Button, {
+        type: 'primary',
+        onClick: () => window.location.replace(withBuildVersion(window.location.href, version)),
+      }, '刷新到新版本'),
+    });
+  });
+  oldRender();
+}
+
+export function onRouteChange() {
+  syncBuildVersionInUrl();
+}
 
 let sessionReauthPromise: Promise<boolean> | null = null;
 

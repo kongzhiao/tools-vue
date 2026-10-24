@@ -53,7 +53,8 @@ export default (initialState: {
     canUpdateUser: hasPermission('账户管理:编辑'),
     canDeleteUser: hasPermission('账户管理:删除'),
     canAccessUser: hasModulePermission('账户管理'),
-    canManageUserSecurity: isAdmin,
+    canManageUserSecurity:
+      Boolean(currentUser?.admin_capability) || currentUser?.id === 1,
 
     // 角色管理权限
     canReadRole: hasPermission('角色管理:查看'),
